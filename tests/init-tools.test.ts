@@ -132,11 +132,84 @@ describe('midas init --tools', () => {
     expect(config).not.toHaveProperty('tools');
   });
 
-  it('--tools all selects every registry tool', async () => {
+  it('--tools all selects exactly the six supported tools', async () => {
     const { code, out } = await run(['init', '--tools', 'all', '--json']);
     expect(code).toBe(0);
     const payload = JSON.parse(out) as InitJson;
     expect(payload.tools).toEqual(TOOL_REGISTRY.map((tool) => tool.id));
+    expect(payload.tools).toEqual([
+      'claude',
+      'cursor',
+      'windsurf',
+      'codex',
+      'antigravity',
+      'gemini',
+    ]);
+  });
+
+  it('--tools antigravity installs the four skills and workflows', async () => {
+    const { code, out } = await run(['init', '--tools', 'antigravity', '--json']);
+    expect(code).toBe(0);
+
+    const payload = JSON.parse(out) as InitJson;
+    expect(payload.tools).toEqual(['antigravity']);
+
+    const skillsRoot = join(home, '.gemini', 'antigravity', 'skills');
+    const entry = payload.generated.skills.byTool.find((e) => e.tool === 'antigravity');
+    expect(entry?.files).toEqual([
+      join(skillsRoot, 'midas-spec', 'SKILL.md'),
+      join(skillsRoot, 'midas-break', 'SKILL.md'),
+      join(skillsRoot, 'midas-implement', 'SKILL.md'),
+      join(skillsRoot, 'midas-archive', 'SKILL.md'),
+    ]);
+    for (const file of entry?.files ?? []) {
+      expect(await exists(file)).toBe(true);
+    }
+
+    // Workflows land in the commands layer under global_workflows.
+    expect(payload.generated.commands.skipped).not.toContain('antigravity');
+    const workflowsDir = join(home, '.gemini', 'antigravity', 'global_workflows');
+    const commandsEntry = payload.generated.commands.byTool.find((e) => e.tool === 'antigravity');
+    expect(commandsEntry?.files).toEqual([
+      join(workflowsDir, 'midas-spec.md'),
+      join(workflowsDir, 'midas-break.md'),
+      join(workflowsDir, 'midas-implement.md'),
+      join(workflowsDir, 'midas-archive.md'),
+    ]);
+    expect(await exists(join(workflowsDir, 'midas-spec.md'))).toBe(true);
+
+    // Nothing is written into the project beyond AGENTS.md and .midas/.
+    expect(await exists(join(dir, '.agents'))).toBe(false);
+    expect(await exists(join(dir, '.gemini'))).toBe(false);
+  });
+
+  it('--tools gemini installs the four TOML commands and skips skills', async () => {
+    const { code, out } = await run(['init', '--tools', 'gemini', '--json']);
+    expect(code).toBe(0);
+
+    const payload = JSON.parse(out) as InitJson;
+    expect(payload.tools).toEqual(['gemini']);
+
+    const entry = payload.generated.commands.byTool.find((e) => e.tool === 'gemini');
+    expect(entry?.files).toEqual([
+      join(home, '.gemini', 'commands', 'midas', 'spec.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'break.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'implement.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'archive.toml'),
+    ]);
+    expect(payload.generated.commands.skipped).not.toContain('gemini');
+    expect(payload.generated.skills.skipped).toContain('gemini');
+
+    const spec = await readFile(join(home, '.gemini', 'commands', 'midas', 'spec.toml'), 'utf8');
+    expect(spec).toContain('{{args}}');
+  });
+
+  it('rejects the removed aider id with exit 2', async () => {
+    const { code, err } = await run(['init', '--tools', 'aider', '--json']);
+    expect(code).toBe(2);
+    const parsed = JSON.parse(err.trim()) as { error: { message: string } };
+    expect(parsed.error.message).toContain("unknown tool 'aider'");
+    expect(parsed.error.message).toContain('claude');
   });
 
   it('rejects unknown tool ids with exit 2 listing valid ids', async () => {
@@ -206,6 +279,19 @@ describe('midas init --force / non-TTY', () => {
     expect(code).toBe(0);
     const payload = JSON.parse(out) as InitJson;
     expect(payload.tools).toEqual(['cursor']);
+  });
+
+  it('silently ignores removed ids left in the global config', async () => {
+    await writeFile(
+      join(home, '.midas', 'config.yaml'),
+      'tools:\n  - claude\n  - aider\n  - zed\nlanguage: en-US\n',
+      'utf8'
+    );
+
+    const { code, out } = await run(['init', '--json']);
+    expect(code).toBe(0);
+    const payload = JSON.parse(out) as InitJson;
+    expect(payload.tools).toEqual(['claude']);
   });
 
   it('human output lists generated files grouped by layer and tool', async () => {

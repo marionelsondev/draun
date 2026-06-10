@@ -3,12 +3,12 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { CliError } from './output.js';
 
-export type FrontmatterStyle = 'yaml' | 'none';
+export type CommandFormat = 'yaml' | 'none' | 'toml';
 
 export interface ToolCommands {
   /** Relative path (posix) of the command file for a given command name. */
   pathFor: (name: string) => string;
-  frontmatter: FrontmatterStyle;
+  format: CommandFormat;
 }
 
 /** Global install destinations, declared relative to the user's home directory. */
@@ -40,14 +40,14 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
     markerFiles: ['CLAUDE.md'],
     commands: {
       pathFor: (name) => `.claude/commands/midas/${name}.md`,
-      frontmatter: 'yaml',
+      format: 'yaml',
     },
     skillsDir: '.claude/skills',
     global: {
       skillsDir: '.claude/skills',
       commands: {
         pathFor: (name) => `.claude/commands/midas/${name}.md`,
-        frontmatter: 'yaml',
+        format: 'yaml',
       },
     },
   },
@@ -57,12 +57,12 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
     rootDir: '.cursor',
     commands: {
       pathFor: (name) => `.cursor/commands/midas-${name}.md`,
-      frontmatter: 'none',
+      format: 'none',
     },
     global: {
       commands: {
         pathFor: (name) => `.cursor/commands/midas-${name}.md`,
-        frontmatter: 'none',
+        format: 'none',
       },
     },
   },
@@ -79,55 +79,35 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
     id: 'codex',
     name: 'Codex CLI',
     rootDir: '.codex',
+    skillsDir: '.codex/skills',
+    global: {
+      skillsDir: '.codex/skills',
+    },
+  },
+  {
+    id: 'antigravity',
+    name: 'Antigravity',
+    rootDir: '.agents',
+    markerFiles: ['.agent'],
+    global: {
+      skillsDir: '.gemini/antigravity/skills',
+      commands: {
+        pathFor: (name) => `.gemini/antigravity/global_workflows/midas-${name}.md`,
+        format: 'yaml',
+      },
+    },
   },
   {
     id: 'gemini',
     name: 'Gemini CLI',
     rootDir: '.gemini',
     markerFiles: ['GEMINI.md'],
-  },
-  {
-    id: 'github-copilot',
-    name: 'GitHub Copilot',
-    rootDir: '.github',
-    markerFiles: ['.github/copilot-instructions.md'],
-    markerOnlyDetection: true,
-  },
-  {
-    id: 'opencode',
-    name: 'OpenCode',
-    rootDir: '.opencode',
-  },
-  {
-    id: 'cline',
-    name: 'Cline',
-    rootDir: '.cline',
-    markerFiles: ['.clinerules'],
-  },
-  {
-    id: 'roocode',
-    name: 'Roo Code',
-    rootDir: '.roo',
-  },
-  {
-    id: 'kilocode',
-    name: 'Kilo Code',
-    rootDir: '.kilocode',
-  },
-  {
-    id: 'aider',
-    name: 'Aider',
-    markerFiles: ['.aider.conf.yml'],
-  },
-  {
-    id: 'amazon-q',
-    name: 'Amazon Q Developer',
-    rootDir: '.amazonq',
-  },
-  {
-    id: 'zed',
-    name: 'Zed',
-    rootDir: '.zed',
+    global: {
+      commands: {
+        pathFor: (name) => `.gemini/commands/midas/${name}.toml`,
+        format: 'toml',
+      },
+    },
   },
 ];
 
@@ -135,7 +115,7 @@ export interface ResolvedGlobalPaths {
   skillsDir?: string;
   commands?: {
     pathFor: (name: string) => string;
-    frontmatter: FrontmatterStyle;
+    format: CommandFormat;
   };
 }
 
@@ -155,10 +135,10 @@ export function resolveGlobalPaths(
     resolved.skillsDir = join(home, tool.global.skillsDir);
   }
   if (tool.global.commands !== undefined) {
-    const { pathFor, frontmatter } = tool.global.commands;
+    const { pathFor, format } = tool.global.commands;
     resolved.commands = {
       pathFor: (name) => join(home, pathFor(name)),
-      frontmatter,
+      format,
     };
   }
   return resolved;

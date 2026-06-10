@@ -26,25 +26,9 @@ async function writeGlobalConfig(content: string): Promise<void> {
 }
 
 describe('TOOL_REGISTRY', () => {
-  it('covers all required tool ids', () => {
+  it('covers exactly the supported tool ids', () => {
     const ids = TOOL_REGISTRY.map((tool) => tool.id);
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        'claude',
-        'cursor',
-        'windsurf',
-        'codex',
-        'gemini',
-        'github-copilot',
-        'opencode',
-        'cline',
-        'roocode',
-        'kilocode',
-        'aider',
-        'amazon-q',
-        'zed',
-      ]),
-    );
+    expect(ids).toEqual(['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'gemini']);
   });
 
   it('has unique ids', () => {
@@ -82,28 +66,28 @@ describe('detectTools', () => {
     expect(detected.map((tool) => tool.id)).toEqual(['claude']);
   });
 
-  it('does not detect github-copilot from .github alone', async () => {
-    await mkdir(join(dir, '.github'), { recursive: true });
-
-    expect(await detectTools(dir)).toEqual([]);
-  });
-
-  it('detects github-copilot when copilot-instructions.md exists', async () => {
-    await mkdir(join(dir, '.github'), { recursive: true });
-    await writeFile(join(dir, '.github', 'copilot-instructions.md'), 'hi\n', 'utf8');
+  it('detects antigravity via the .agents/ directory', async () => {
+    await mkdir(join(dir, '.agents'), { recursive: true });
 
     const detected = await detectTools(dir);
 
-    expect(detected.map((tool) => tool.id)).toEqual(['github-copilot']);
+    expect(detected.map((tool) => tool.id)).toEqual(['antigravity']);
   });
 
-  it('detects aider via .aider.conf.yml and cline via a .clinerules dir', async () => {
-    await writeFile(join(dir, '.aider.conf.yml'), 'model: x\n', 'utf8');
-    await mkdir(join(dir, '.clinerules'), { recursive: true });
+  it('detects antigravity via the legacy .agent/ directory', async () => {
+    await mkdir(join(dir, '.agent'), { recursive: true });
 
     const detected = await detectTools(dir);
 
-    expect(detected.map((tool) => tool.id)).toEqual(['cline', 'aider']);
+    expect(detected.map((tool) => tool.id)).toEqual(['antigravity']);
+  });
+
+  it('does not detect antigravity in a repo with only .claude/', async () => {
+    await mkdir(join(dir, '.claude'), { recursive: true });
+
+    const detected = await detectTools(dir);
+
+    expect(detected.map((tool) => tool.id)).not.toContain('antigravity');
   });
 });
 
@@ -118,8 +102,36 @@ describe('resolveToolsFlag', () => {
   });
 
   it('tolerates whitespace around ids', () => {
-    const tools = resolveToolsFlag(' claude , zed ');
-    expect(tools.map((tool) => tool.id)).toEqual(['claude', 'zed']);
+    const tools = resolveToolsFlag(' claude , gemini ');
+    expect(tools.map((tool) => tool.id)).toEqual(['claude', 'gemini']);
+  });
+
+  it('maps all to exactly the six supported ids', () => {
+    const tools = resolveToolsFlag('all');
+    expect(tools.map((tool) => tool.id)).toEqual([
+      'claude',
+      'cursor',
+      'windsurf',
+      'codex',
+      'antigravity',
+      'gemini',
+    ]);
+  });
+
+  it('rejects a removed id, listing only the supported ids', () => {
+    let caught: unknown;
+    try {
+      resolveToolsFlag('aider');
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(CliError);
+    expect((caught as CliError).exitCode).toBe(2);
+    expect((caught as CliError).message).toContain("unknown tool 'aider'");
+    for (const id of ['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'gemini']) {
+      expect((caught as CliError).message).toContain(id);
+    }
+    expect((caught as CliError).message).not.toContain('opencode');
   });
 
   it('throws CliError exit 2 naming the unknown id and listing valid ids', () => {

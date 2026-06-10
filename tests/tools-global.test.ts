@@ -31,7 +31,7 @@ describe('resolveGlobalPaths', () => {
     expect(resolved?.commands?.pathFor('spec')).toBe(
       join(home, '.claude', 'commands', 'midas', 'spec.md'),
     );
-    expect(resolved?.commands?.frontmatter).toBe('yaml');
+    expect(resolved?.commands?.format).toBe('yaml');
   });
 
   it('resolves cursor global commands only', () => {
@@ -41,7 +41,7 @@ describe('resolveGlobalPaths', () => {
     expect(resolved?.commands?.pathFor('spec')).toBe(
       join(home, '.cursor', 'commands', 'midas-spec.md'),
     );
-    expect(resolved?.commands?.frontmatter).toBe('none');
+    expect(resolved?.commands?.format).toBe('none');
   });
 
   it('resolves windsurf global skills only', () => {
@@ -51,19 +51,35 @@ describe('resolveGlobalPaths', () => {
     expect(resolved?.commands).toBeUndefined();
   });
 
+  it('resolves codex global skills only', () => {
+    const resolved = resolveGlobalPaths(getTool('codex'), home);
+    expect(resolved).not.toBeNull();
+    expect(resolved?.skillsDir).toBe(join(home, '.codex', 'skills'));
+    expect(resolved?.commands).toBeUndefined();
+  });
+
+  it('resolves antigravity global skills and workflow commands', () => {
+    const resolved = resolveGlobalPaths(getTool('antigravity'), home);
+    expect(resolved).not.toBeNull();
+    expect(resolved?.skillsDir).toBe(join(home, '.gemini', 'antigravity', 'skills'));
+    expect(resolved?.commands?.pathFor('spec')).toBe(
+      join(home, '.gemini', 'antigravity', 'global_workflows', 'midas-spec.md'),
+    );
+    expect(resolved?.commands?.format).toBe('yaml');
+  });
+
+  it('resolves gemini global commands only', () => {
+    const resolved = resolveGlobalPaths(getTool('gemini'), home);
+    expect(resolved).not.toBeNull();
+    expect(resolved?.skillsDir).toBeUndefined();
+    expect(resolved?.commands?.pathFor('spec')).toBe(
+      join(home, '.gemini', 'commands', 'midas', 'spec.toml'),
+    );
+    expect(resolved?.commands?.format).toBe('toml');
+  });
+
   it('returns null for every tool without a global destination', () => {
-    const withoutGlobal = [
-      'codex',
-      'gemini',
-      'github-copilot',
-      'opencode',
-      'cline',
-      'roocode',
-      'kilocode',
-      'aider',
-      'amazon-q',
-      'zed',
-    ];
+    const withoutGlobal: string[] = [];
     for (const id of withoutGlobal) {
       expect(resolveGlobalPaths(getTool(id), home)).toBeNull();
     }

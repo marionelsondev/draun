@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname } from 'node:path';
-import { resolveGlobalPaths, type ToolDescriptor } from './tools.js';
+import { resolveGlobalPaths, type CommandFormat, type ToolDescriptor } from './tools.js';
 import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from './workflow-templates.js';
 
 export interface GenerateCommandsResult {
@@ -11,17 +11,34 @@ export interface GenerateCommandsResult {
   skipped: string[];
 }
 
-export function renderCommandFile(
-  template: WorkflowTemplate,
-  frontmatter: 'yaml' | 'none'
-): string {
-  if (frontmatter === 'yaml') {
+function escapeTomlBasicString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function escapeTomlMultilineString(value: string): string {
+  let escaped = value.replace(/\\/g, '\\\\');
+  escaped = escaped.replace(/"""/g, '""\\"');
+  escaped = escaped.replace(/"$/, '\\"');
+  return escaped;
+}
+
+export function renderCommandFile(template: WorkflowTemplate, format: CommandFormat): string {
+  if (format === 'yaml') {
     const lines = ['---', `description: ${template.description}`];
     if (template.argumentHint !== undefined) {
       lines.push(`argument-hint: ${template.argumentHint}`);
     }
     lines.push('---', '', template.body);
     return `${lines.join('\n')}\n`;
+  }
+  if (format === 'toml') {
+    const description = escapeTomlBasicString(template.description);
+    let body = template.body;
+    if (template.argumentHint !== undefined) {
+      body += '\n\nARGUMENTS: {{args}}';
+    }
+    const prompt = escapeTomlMultilineString(body);
+    return `description = "${description}"\n\nprompt = """\n${prompt}\n"""\n`;
   }
   return `# midas ${template.name} — ${template.description}\n\n${template.body}\n`;
 }
@@ -45,7 +62,7 @@ export async function generateCommands(
         await mkdir(dirname(absPath), { recursive: true });
         await writeFile(
           absPath,
-          renderCommandFile(template, resolved.commands.frontmatter),
+          renderCommandFile(template, resolved.commands.format),
           'utf8'
         );
         written.push(absPath);

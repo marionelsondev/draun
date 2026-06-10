@@ -101,7 +101,7 @@ A saída humana do CLI é sempre em inglês; `language` governa o conteúdo das 
 
 ## Ferramentas suportadas
 
-Claude Code, Cursor, Windsurf, Codex, Gemini CLI, GitHub Copilot, OpenCode, Cline, Roo Code, Kilo Code, Aider, Amazon Q e Zed. Ferramentas sem convenção nativa de slash command ou skills ainda recebem a camada universal do `AGENTS.md`.
+Claude Code, Cursor, Windsurf, Codex CLI e Gemini CLI. Ferramentas sem convenção nativa de slash command ou skills ainda recebem a camada universal do `AGENTS.md`.
 
 ## Licença
 

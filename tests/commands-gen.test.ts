@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateCommands, renderCommandFile } from '../src/lib/commands-gen.js';
-import { WORKFLOW_TEMPLATES } from '../src/lib/workflow-templates.js';
+import { parse } from 'smol-toml';
+import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from '../src/lib/workflow-templates.js';
 import { TOOL_REGISTRY, type ToolDescriptor } from '../src/lib/tools.js';
 
 const claude = TOOL_REGISTRY.find((t) => t.id === 'claude') as ToolDescriptor;
 const cursor = TOOL_REGISTRY.find((t) => t.id === 'cursor') as ToolDescriptor;
 const windsurf = TOOL_REGISTRY.find((t) => t.id === 'windsurf') as ToolDescriptor;
 const codex = TOOL_REGISTRY.find((t) => t.id === 'codex') as ToolDescriptor;
+const antigravity = TOOL_REGISTRY.find((t) => t.id === 'antigravity') as ToolDescriptor;
+const gemini = TOOL_REGISTRY.find((t) => t.id === 'gemini') as ToolDescriptor;
 
 let home: string;
 
@@ -72,6 +75,44 @@ describe('renderCommandFile', () => {
   });
 });
 
+describe('renderCommandFile toml', () => {
+  it('round-trips description and prompt for every workflow template', () => {
+    for (const template of WORKFLOW_TEMPLATES) {
+      const doc = parse(renderCommandFile(template, 'toml'));
+      expect(doc.description).toBe(template.description);
+      const expectedBody =
+        template.argumentHint !== undefined
+          ? `${template.body}\n\nARGUMENTS: {{args}}\n`
+          : `${template.body}\n`;
+      expect(doc.prompt).toBe(expectedBody);
+      expect(Object.keys(doc).sort()).toEqual(['description', 'prompt']);
+    }
+  });
+
+  it('uses a basic string for description and a multiline string for prompt', () => {
+    const content = renderCommandFile(WORKFLOW_TEMPLATES[0], 'toml');
+    expect(content.startsWith('description = "')).toBe(true);
+    expect(content).toContain('prompt = """');
+  });
+
+  it('escapes hostile quotes, backslashes and triple quotes', () => {
+    const hostile: WorkflowTemplate = {
+      name: 'hostile',
+      description: 'A "quoted" description with a back\\slash',
+      body: [
+        'Path with backslashes: C:\\path\\to\\file',
+        'Embedded triple quotes: """inside"""',
+        'A line ending with a quote "',
+        'Some `backticks` and more text',
+        'Body ends with a quote "',
+      ].join('\n'),
+    };
+    const doc = parse(renderCommandFile(hostile, 'toml'));
+    expect(doc.description).toBe(hostile.description);
+    expect(doc.prompt).toBe(`${hostile.body}\n`);
+  });
+});
+
 describe('generateCommands', () => {
   it('writes the four command files at each tool global path', async () => {
     const result = await generateCommands([claude, cursor], home);
@@ -98,6 +139,56 @@ describe('generateCommands', () => {
     const cursorSpec = await readFile(join(home, '.cursor', 'commands', 'midas-spec.md'), 'utf8');
     expect(cursorSpec.startsWith('---')).toBe(false);
     expect(cursorSpec).toContain('midas instructions spec --json');
+  });
+
+  it('writes the four gemini TOML commands under the global home', async () => {
+    const result = await generateCommands([gemini], home);
+
+    expect(result.skipped).toEqual([]);
+    expect(result.written).toEqual([
+      join(home, '.gemini', 'commands', 'midas', 'spec.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'break.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'implement.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'archive.toml'),
+    ]);
+
+    const spec = WORKFLOW_TEMPLATES[0];
+    const doc = parse(
+      await readFile(join(home, '.gemini', 'commands', 'midas', 'spec.toml'), 'utf8')
+    );
+    expect(doc.description).toBe(spec.description);
+    expect(doc.prompt).toContain('{{args}}');
+    expect(doc.prompt).toContain('midas instructions spec --json');
+  });
+
+  it('writes the four antigravity workflows under global_workflows', async () => {
+    const result = await generateCommands([antigravity], home);
+
+    const workflowsDir = join(home, '.gemini', 'antigravity', 'global_workflows');
+    expect(result.skipped).toEqual([]);
+    expect(result.written).toEqual([
+      join(workflowsDir, 'midas-spec.md'),
+      join(workflowsDir, 'midas-break.md'),
+      join(workflowsDir, 'midas-implement.md'),
+      join(workflowsDir, 'midas-archive.md'),
+    ]);
+
+    const spec = WORKFLOW_TEMPLATES[0];
+    const content = await readFile(join(workflowsDir, 'midas-spec.md'), 'utf8');
+    expect(content.startsWith('---\n')).toBe(true);
+    expect(content).toContain(`description: ${spec.description}`);
+    expect(content).toContain('argument-hint: [feature-description]');
+    expect(content).toContain(spec.body);
+
+    // Idempotent: a second run rewrites without leaving extra files behind.
+    await generateCommands([antigravity], home);
+    const entries = (await readdir(workflowsDir)).sort();
+    expect(entries).toEqual([
+      'midas-archive.md',
+      'midas-break.md',
+      'midas-implement.md',
+      'midas-spec.md',
+    ]);
   });
 
   it('reports tools without a global command destination as skipped', async () => {

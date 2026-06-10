@@ -36,7 +36,7 @@ describe('generateIntegrations (global destinations)', () => {
     }
 
     expect(report.commands.skipped).toContain('codex');
-    expect(report.skills.skipped).toContain('codex');
+    expect(report.skills.skipped).not.toContain('codex');
     expect(report.skills.skipped).toContain('cursor');
 
     // only AGENTS.md is created in the project — no .claude/.cursor dirs
@@ -49,5 +49,27 @@ describe('generateIntegrations (global destinations)', () => {
     expect(skill).toContain('name: midas-spec');
     const command = await readFile(join(home, '.cursor', 'commands', 'midas-spec.md'), 'utf8');
     expect(command).toContain('midas instructions spec --json');
+  });
+
+  it('installs codex skills globally while keeping codex skipped on the commands layer', async () => {
+    const report = await generateIntegrations(projectDir, [codex], home);
+
+    expect(report.commands.skipped).toEqual(['codex']);
+    expect(report.skills.skipped).toEqual([]);
+
+    const entry = report.skills.byTool.find((e) => e.tool === 'codex');
+    expect(entry).toBeDefined();
+    expect(entry?.files).toEqual([
+      join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-break', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-implement', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-archive', 'SKILL.md'),
+    ]);
+
+    const skill = await readFile(
+      join(home, '.codex', 'skills', 'midas-archive', 'SKILL.md'),
+      'utf8'
+    );
+    expect(skill).toContain('name: midas-archive');
   });
 });

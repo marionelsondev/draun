@@ -101,7 +101,7 @@ CLI human output is always English; `language` governs spec/issue content and th
 
 ## Supported tools
 
-Claude Code, Cursor, Windsurf, Codex, Gemini CLI, GitHub Copilot, OpenCode, Cline, Roo Code, Kilo Code, Aider, Amazon Q, and Zed. Tools without a native slash-command or skills convention still get the universal `AGENTS.md` layer.
+Claude Code, Cursor, Windsurf, Codex CLI, and Gemini CLI. Tools without a native slash-command or skills convention still get the universal `AGENTS.md` layer.
 
 ## License
 

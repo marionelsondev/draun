@@ -10,6 +10,8 @@ const claude = TOOL_REGISTRY.find((t) => t.id === 'claude') as ToolDescriptor;
 const windsurf = TOOL_REGISTRY.find((t) => t.id === 'windsurf') as ToolDescriptor;
 const cursor = TOOL_REGISTRY.find((t) => t.id === 'cursor') as ToolDescriptor;
 const codex = TOOL_REGISTRY.find((t) => t.id === 'codex') as ToolDescriptor;
+const antigravity = TOOL_REGISTRY.find((t) => t.id === 'antigravity') as ToolDescriptor;
+const gemini = TOOL_REGISTRY.find((t) => t.id === 'gemini') as ToolDescriptor;
 
 let home: string;
 
@@ -65,10 +67,61 @@ describe('generateSkills', () => {
     expect(skill).toContain('midas instructions spec --json');
   });
 
-  it('reports tools without a global skills destination as skipped', async () => {
-    const result = await generateSkills([cursor, codex, claude], home);
+  it('writes the four midas-* skill directories under the codex global skillsDir', async () => {
+    const result = await generateSkills([codex], home);
 
-    expect(result.skipped).toEqual(['cursor', 'codex']);
+    expect(result.written).toEqual([
+      join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-break', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-implement', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-archive', 'SKILL.md'),
+    ]);
+    expect(result.skipped).toEqual([]);
+
+    const skill = await readFile(
+      join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
+      'utf8'
+    );
+    expect(skill.startsWith('---\n')).toBe(true);
+    expect(skill).toContain('name: midas-spec');
+    expect(skill).toContain('description:');
+    expect(skill).toContain('midas instructions spec --json');
+  });
+
+  it('writes the four midas-* skill directories under the antigravity global skillsDir', async () => {
+    const result = await generateSkills([antigravity], home);
+
+    expect(result.written).toEqual([
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-break', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-implement', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-archive', 'SKILL.md'),
+    ]);
+    expect(result.skipped).toEqual([]);
+
+    const skill = await readFile(
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
+      'utf8'
+    );
+    expect(skill).toContain('name: midas-spec');
+  });
+
+  it('installing antigravity and gemini together does not collide', async () => {
+    const result = await generateSkills([antigravity, gemini], home);
+
+    expect(result.written).toEqual([
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-break', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-implement', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-archive', 'SKILL.md'),
+    ]);
+    expect(result.skipped).toEqual(['gemini']);
+  });
+
+  it('reports tools without a global skills destination as skipped', async () => {
+    const result = await generateSkills([cursor, gemini, claude], home);
+
+    expect(result.skipped).toEqual(['cursor', 'gemini']);
     expect(result.written).toHaveLength(4);
     expect(
       result.written.every((p) => p.startsWith(join(home, '.claude', 'skills')))
