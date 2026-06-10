@@ -63,13 +63,16 @@ If it is missing, ASK the user which mode to use and WAIT for the answer —
 do not pick, start, or implement any issue before the mode is known.
 Present the options with their trade-offs:
 
-- \`manual\` — one issue per run; the user reviews between issues. Slowest,
-  full control.
-- \`auto\` — implement every ready issue sequentially, autonomously, until the
-  spec is done. Single agent, no questions in between.
-- \`ultracode\` — spawn a parallel multi-agent workflow that plans and
-  implements issues concurrently following the dependency graph. Fastest, but
-  uses many agents and tokens; requires the user to have opted into ultracode.
+- \`manual\` — one issue per run; the user reviews between issues, and may
+  plan an issue before implementing it. Slowest, full control.
+- \`auto\` — implement every ready issue sequentially and autonomously until
+  the spec is done, delegating each issue to subagents so the main context
+  window stays clean. No questions in between.
+- \`ultracode\` — like auto, but uses the agent's workflow/orchestration
+  feature (when available) to also parallelize independent issues following
+  the dependency graph. Fastest, but uses many agents and tokens; requires
+  the user to have opted into ultracode. Falls back to \`auto\` when the
+  agent has no workflow feature.
 
 In every mode, each issue follows the same tracked lifecycle so that
 \`midas status\` reflects reality: \`midas start <spec-slug> <NN> --json\` when
@@ -83,9 +86,18 @@ and reviewed (marks it \`[x]\`).
    blockers are all done. If none are ready, report progress and stop.
 2. Pick one ready issue (the lowest number unless the user asked for a
    specific one) and read its markdown file — it is the contract.
-3. Run \`midas start <spec-slug> <issue-number> --json\`.
-4. Implement exactly what the issue describes, including the tests its
-   Expected Result demands, and run the test suite until green.
+3. If there is no plan for this issue already approved in the current
+   conversation, ASK the user whether to (a) create a plan first using the
+   agent's native plan mode and run this command again afterwards to
+   implement the approved plan — the recommended option — or (b) implement
+   directly. WAIT for the answer.
+   - If the user chooses to plan: enter the agent's native plan mode, build
+     the plan from the issue file and the SPEC.md, and present it for
+     approval. Do NOT implement in this run.
+4. To implement (directly, or from a plan approved in this conversation):
+   run \`midas start <spec-slug> <issue-number> --json\`, implement exactly
+   what the issue describes, including the tests its Expected Result
+   demands, and run the test suite until green.
 5. Run \`midas done <spec-slug> <issue-number> --json\`.
 6. Summarize what changed and which issues are now unblocked, then STOP and
    let the user review before the next issue. When no issues remain, suggest
@@ -93,29 +105,46 @@ and reviewed (marks it \`[x]\`).
 
 ## auto mode
 
-Loop the manual steps (ready → pick lowest → start → implement → test →
-done) without asking between issues: after each \`midas done\`, re-run
-\`midas issues <spec-slug> --ready --json\` and continue with the next ready
-issue until none remain. Then report a final summary of every issue
-implemented and the test-suite result, and suggest \`/midas:archive <spec-slug>\`.
+Loop autonomously, without asking between issues, delegating all reading
+and coding to subagents so the orchestrator's context window stays small —
+the orchestrator only runs \`midas\` commands and passes plans and summaries
+between subagents, never reading the code itself.
+
+1. Run \`midas issues <spec-slug> --ready --json\` and pick the lowest-number
+   ready issue.
+2. Run \`midas start <spec-slug> <issue-number> --json\`.
+3. Run the issue as a two-subagent chain: a read-only planner subagent
+   (reads the issue file, the SPEC.md, and only the code it needs; returns a
+   structured plan) feeding an implementer subagent (implements the plan,
+   writes the tests the issue's Expected Result demands, and runs the test
+   suite until green; never commits; never touches INDEX.md).
+4. Run \`midas done <spec-slug> <issue-number> --json\`, re-run
+   \`midas issues <spec-slug> --ready --json\`, and continue with the next
+   ready issue until none remain.
+5. Report a final summary of every issue implemented and the test-suite
+   result, and suggest \`/midas:archive <spec-slug>\`.
 
 ## ultracode mode
 
-Build and run a parallel workflow driven by the dependency graph — no
-fixed waves or barriers: everything runs as early as its dependencies allow,
-and everything that can run in parallel does.
+If the agent has a workflow/orchestration feature, use it to build and run
+a parallel workflow driven by the dependency graph — no fixed waves or
+barriers: everything runs as early as its dependencies allow, and everything
+that can run in parallel does. If the agent has NO workflow feature, fall
+back to \`auto\` mode exactly as described above.
 
 1. Read the full graph with \`midas issues <spec-slug> --json\`. Schedule by
    dependencies: each issue launches as soon as ALL of its \`blockedBy\`
    issues are done — never wait for an entire "batch" to finish.
 2. Issues with no dependency between them but that touch the same files must
    run as one sequential chain; disjoint chains run concurrently.
-3. Run each issue as a two-agent chain: a read-only planner agent (reads the
-   issue file, the SPEC.md, and only the code it needs; returns a structured
-   plan) feeding an implementer agent (implements the plan and writes the
-   tests the issue's Expected Result demands; runs ONLY its own targeted
-   test files — never the full suite or the build, to avoid clashing with
-   parallel agents; never commits; never touches INDEX.md).
+3. Run each issue as a two-agent chain with its own isolated context: a
+   read-only planner agent (reads the issue file, the SPEC.md, and only the
+   code it needs; returns a structured plan) feeding an implementer agent
+   (implements the plan and writes the tests the issue's Expected Result
+   demands; runs ONLY its own targeted test files — never the full suite or
+   the build, to avoid clashing with parallel agents; never commits; never
+   touches INDEX.md). Both agents must inherit the user's current model —
+   never override the model for planner or implementer agents.
 4. ONLY the orchestrator writes to INDEX.md, always one call at a time
    (parallel calls race on the file and lose updates): run
    \`midas start <spec-slug> <NN> --json\` immediately before launching an

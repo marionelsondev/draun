@@ -71,7 +71,7 @@ Gerados para cada ferramenta configurada; commands e skills são os mesmos quatr
 | --- | --- |
 | `/midas:spec [descrição-da-feature]` | Recebe uma descrição livre do que você quer, deriva o nome da spec, cria a estrutura, faz perguntas de esclarecimento, escreve o `SPEC.md` seguindo o template e as regras do projeto, e valida. |
 | `/midas:break [spec-slug]` | Quebra o `SPEC.md` em issues pequenas e verificáveis de forma independente, com grafo de dependências `blocked by`, e valida. |
-| `/midas:implement [spec-slug] [manual\|auto\|ultracode]` | Implementa as issues prontas. `manual`: uma issue por vez, você revisa entre elas. `auto`: todas as issues prontas em sequência. `ultracode`: execução paralela multi-agente seguindo o grafo de dependências. |
+| `/midas:implement [spec-slug] [manual\|auto\|ultracode]` | Implementa as issues prontas. `manual`: uma issue por vez, com etapa opcional de planejamento antes, você revisa entre elas. `auto`: todas as issues prontas em sequência via subagents (planner → implementer por issue). `ultracode`: workflow paralelo multi-agente seguindo o grafo de dependências; cai para `auto` se o agente não tiver a funcionalidade de workflow. |
 | `/midas:archive [spec-slug]` | Confirma que todas as issues estão concluídas, valida e arquiva a spec. |
 
 ## Configuração
