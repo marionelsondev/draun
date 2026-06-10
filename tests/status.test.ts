@@ -5,7 +5,17 @@ import { join } from 'node:path';
 import { Command } from 'commander';
 import { CliError } from '../src/lib/output.js';
 import { listSpecStatuses, parseIndex, readSpecStatus } from '../src/lib/index-parser.js';
-import { makeStatusCommand } from '../src/commands/status.js';
+import { makeStatusCommand, renderSpecDetail } from '../src/commands/status.js';
+import { getMessages } from '../src/lib/messages.js';
+
+// The status command resolves language via the global config in os.homedir();
+// point the home at a temp dir so the real one never leaks in.
+const mocked = vi.hoisted(() => ({ home: '' }));
+vi.mock('node:os', async (importOriginal) => {
+  const os = await importOriginal<typeof import('node:os')>();
+  const homedir = () => mocked.home;
+  return { ...os, homedir, default: { ...os, homedir } };
+});
 
 const INDEX_FIXTURE = `# Issues — Pricing Engine
 
@@ -23,13 +33,17 @@ not a list line
 `;
 
 let dir: string;
+let home: string;
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'midas-status-'));
+  home = await mkdtemp(join(tmpdir(), 'midas-status-home-'));
+  mocked.home = home;
 });
 
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
+  await rm(home, { recursive: true, force: true });
 });
 
 async function makeSpec(slug: string, indexContent?: string, withIssuesDir = false): Promise<void> {
@@ -53,6 +67,7 @@ describe('parseIndex', () => {
       title: 'Set up schema',
       file: '01-set-up-schema.md',
       done: false,
+      state: 'todo',
       blockedBy: [],
     });
     expect(issues[1].done).toBe(true);
@@ -102,6 +117,7 @@ describe('readSpecStatus', () => {
       brokenDown: false,
       total: 0,
       done: 0,
+      inProgress: 0,
       pending: 0,
       issues: [],
     });
@@ -120,6 +136,16 @@ describe('readSpecStatus', () => {
     const status = await readSpecStatus(dir, 'empty-index');
     expect(status.brokenDown).toBe(true);
     expect(status.total).toBe(0);
+  });
+
+  it('counts in-progress issues separately from done and pending', async () => {
+    const wipIndex = INDEX_FIXTURE.replace('- [ ] [01', '- [~] [01');
+    await makeSpec('wip-engine', wipIndex);
+
+    const status = await readSpecStatus(dir, 'wip-engine');
+
+    expect(status).toMatchObject({ total: 3, done: 2, inProgress: 1, pending: 0 });
+    expect(status.issues[0].state).toBe('in-progress');
   });
 
   it('rejects an unknown slug with a CliError naming the slug', async () => {
@@ -163,6 +189,20 @@ describe('listSpecStatuses', () => {
 
     const statuses = await listSpecStatuses(dir);
     expect(statuses.map((s) => s.slug)).toEqual(['real-spec']);
+  });
+});
+
+describe('renderSpecDetail', () => {
+  it('shows the completion percentage and the in-progress marker', async () => {
+    const wipIndex = INDEX_FIXTURE.replace('- [ ] [01', '- [~] [01');
+    await makeSpec('wip-engine', wipIndex);
+    const status = await readSpecStatus(dir, 'wip-engine');
+
+    const out = renderSpecDetail(status, getMessages());
+
+    expect(out).toContain('67%');
+    expect(out).toContain('3 issues · 2 done · 1 in progress · 0 pending');
+    expect(out).toContain('01 — Set up schema (in progress)');
   });
 });
 

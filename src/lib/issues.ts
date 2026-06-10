@@ -1,10 +1,10 @@
 import { type IndexIssue, readSpecStatus } from './index-parser.js';
 import { CliError } from './output.js';
 
-export type IssueState = 'done' | 'ready' | 'blocked';
+export type IssueState = 'done' | 'in-progress' | 'ready' | 'blocked';
 export type IssueFilter = 'all' | 'ready' | 'blocked' | 'done';
 
-export interface ResolvedIssue extends IndexIssue {
+export interface ResolvedIssue extends Omit<IndexIssue, 'state'> {
   state: IssueState;
   pendingBlockers: string[];
 }
@@ -13,7 +13,13 @@ export function resolveIssues(issues: IndexIssue[]): ResolvedIssue[] {
   const doneNumbers = new Set(issues.filter((i) => i.done).map((i) => i.number));
   return issues.map((issue) => {
     const pendingBlockers = issue.blockedBy.filter((n) => !doneNumbers.has(n));
-    const state: IssueState = issue.done ? 'done' : pendingBlockers.length === 0 ? 'ready' : 'blocked';
+    const state: IssueState = issue.done
+      ? 'done'
+      : issue.state === 'in-progress'
+        ? 'in-progress'
+        : pendingBlockers.length === 0
+          ? 'ready'
+          : 'blocked';
     return { ...issue, state, pendingBlockers };
   });
 }

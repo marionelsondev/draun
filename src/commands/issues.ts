@@ -4,7 +4,7 @@ import { resolveSpecsRoot } from '../lib/new.js';
 import { listIssues, type IssueFilter, type IssuesResult, type ResolvedIssue } from '../lib/issues.js';
 
 function renderIssueLine(issue: ResolvedIssue): string {
-  const box = issue.done ? '[x]' : '[ ]';
+  const box = issue.done ? '[x]' : issue.state === 'in-progress' ? '[~]' : '[ ]';
   const annotation =
     issue.state === 'blocked'
       ? ` (blocked by: ${issue.pendingBlockers.join(', ')})`

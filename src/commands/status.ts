@@ -1,42 +1,50 @@
 import { Command } from 'commander';
 import { printResult } from '../lib/output.js';
 import { resolveSpecsRoot } from '../lib/new.js';
+import { getMessages, type Messages } from '../lib/messages.js';
 import { listSpecStatuses, readSpecStatus, type IndexIssue, type SpecStatus } from '../lib/index-parser.js';
-import { bold, dim, gold, progressBar, sym } from '../lib/theme.js';
+import { bold, dim, gold, goldBright, progressBar, sym } from '../lib/theme.js';
 
-function renderIssueLine(issue: IndexIssue): string {
-  const box = issue.done ? gold(sym.check) : dim(sym.off);
-  const title = issue.done ? dim(`${issue.number} — ${issue.title}`) : `${issue.number} — ${issue.title}`;
-  const blocked =
-    !issue.done && issue.blockedBy.length > 0
-      ? dim(` (blocked by: ${issue.blockedBy.join(', ')})`)
-      : '';
-  return `${box} ${title}${blocked}`;
-}
-
-function renderProgressHeader(status: SpecStatus): string {
-  return `${bold(status.slug)}  ${progressBar(status.done, status.total)}  ${status.total} issues (${status.done} done, ${status.pending} pending)`;
-}
-
-export function renderSpecDetail(status: SpecStatus): string {
-  if (!status.brokenDown) {
-    return `Spec '${status.slug}' has not been broken down yet.`;
+function renderIssueLine(issue: IndexIssue, messages: Messages): string {
+  if (issue.done) {
+    return `${gold(sym.check)} ${dim(`${issue.number} — ${issue.title}`)}`;
   }
-  return [renderProgressHeader(status), ...status.issues.map(renderIssueLine)].join('\n');
+  if (issue.state === 'in-progress') {
+    return `${goldBright(sym.wip)} ${issue.number} — ${issue.title} ${dim(`(${messages.status.inProgressLabel})`)}`;
+  }
+  const blocked =
+    issue.blockedBy.length > 0
+      ? dim(` (${messages.status.blockedBy(issue.blockedBy.join(', '))})`)
+      : '';
+  return `${dim(sym.off)} ${issue.number} — ${issue.title}${blocked}`;
 }
 
-export function renderSpecList(statuses: SpecStatus[]): string {
+function renderProgressHeader(status: SpecStatus, messages: Messages): string {
+  return `${bold(status.slug)}  ${progressBar(status.done, status.inProgress, status.total)}  ${messages.status.issuesSummary(status.total, status.done, status.inProgress, status.pending)}`;
+}
+
+export function renderSpecDetail(status: SpecStatus, messages: Messages = getMessages()): string {
+  if (!status.brokenDown) {
+    return messages.status.notBrokenDown(status.slug);
+  }
+  return [
+    renderProgressHeader(status, messages),
+    ...status.issues.map((issue) => renderIssueLine(issue, messages)),
+  ].join('\n');
+}
+
+export function renderSpecList(statuses: SpecStatus[], messages: Messages = getMessages()): string {
   if (statuses.length === 0) {
-    return 'No specs found.';
+    return messages.status.noSpecs;
   }
   const width = Math.max(...statuses.map((s) => s.slug.length));
   return statuses
     .map((s) =>
       s.brokenDown
-        ? `${bold(s.slug.padEnd(width))}  ${progressBar(s.done, s.total)}  ${s.total} issues (${s.done} done, ${s.pending} pending)`
-        : `${bold(s.slug.padEnd(width))}  ${dim('not broken down')}`,
+        ? `${bold(s.slug.padEnd(width))}  ${progressBar(s.done, s.inProgress, s.total)}  ${messages.status.issuesSummary(s.total, s.done, s.inProgress, s.pending)}`
+        : `${bold(s.slug.padEnd(width))}  ${dim(messages.status.notBrokenDownBadge)}`,
     )
-    .join('\n');
+    .join('\n\n');
 }
 
 export function makeStatusCommand(): Command {
@@ -45,13 +53,14 @@ export function makeStatusCommand(): Command {
     .argument('[slug]', 'spec slug to inspect')
     .action(async (slug: string | undefined, _opts: unknown, cmd: Command) => {
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
+      const messages = getMessages();
       const root = await resolveSpecsRoot(process.cwd());
       if (slug !== undefined) {
         const status = await readSpecStatus(root, slug);
-        printResult(status, renderSpecDetail(status), json);
+        printResult(status, renderSpecDetail(status, messages), json);
       } else {
         const statuses = await listSpecStatuses(root);
-        printResult({ specs: statuses }, renderSpecList(statuses), json);
+        printResult({ specs: statuses }, renderSpecList(statuses, messages), json);
       }
     });
 }

@@ -62,7 +62,9 @@ export const sym = {
   check: u('✓', '+'),
   cross: u('✗', 'x'),
   dot: u('·', '-'),
+  wip: '~',
   blockFull: u('█', '#'),
+  blockHalf: u('▓', '~'),
   blockEmpty: u('░', '.'),
 };
 
@@ -109,11 +111,22 @@ export function footer(text: string): string {
   return `${gold(sym.barEnd)}  ${text}`;
 }
 
-/** Gold progress bar: `██████░░░░` sized to `width`. */
-export function progressBar(done: number, total: number, width = 14): string {
+/**
+ * Gold progress bar with completion percentage: `████▓▓░░░░ 33%`.
+ * Done issues fill with `█` (gold), in-progress with `▓` (deep gold), the
+ * remainder with `░` (dim). The percentage counts only done issues.
+ */
+export function progressBar(done: number, inProgress: number, total: number, width = 14): string {
   if (total <= 0) {
-    return dim(sym.blockEmpty.repeat(width));
+    return `${dim(sym.blockEmpty.repeat(width))} ${dim('0%')}`;
   }
   const filled = Math.round((done / total) * width);
-  return gold(sym.blockFull.repeat(filled)) + dim(sym.blockEmpty.repeat(width - filled));
+  const half = Math.min(width - filled, Math.round((inProgress / total) * width));
+  const empty = width - filled - half;
+  const bar =
+    gold(sym.blockFull.repeat(filled)) +
+    goldDim(sym.blockHalf.repeat(half)) +
+    dim(sym.blockEmpty.repeat(empty));
+  const pct = Math.round((done / total) * 100);
+  return `${bar} ${bold(`${pct}%`)}`;
 }

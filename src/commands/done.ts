@@ -1,24 +1,27 @@
 import { Command } from 'commander';
 import { printResult } from '../lib/output.js';
 import { resolveSpecsRoot } from '../lib/new.js';
+import { getMessages, type Messages } from '../lib/messages.js';
 import { setIssueDone, type ToggleOutcome } from '../lib/track.js';
 import { dim, gold, goldBright, sym } from '../lib/theme.js';
 
-export function renderToggle(outcome: ToggleOutcome): string {
-  const verb = outcome.done ? 'done' : 'reopened';
+export function renderToggle(outcome: ToggleOutcome, messages: Messages = getMessages()): string {
   const mark = outcome.done ? gold(sym.check) : dim(sym.off);
+  const label = `${outcome.number} — ${outcome.title}`;
   const lines = [
     outcome.changed
-      ? `${mark} Marked ${outcome.number} — ${outcome.title} as ${verb}.`
-      : `${dim(sym.dot)} ${outcome.number} — ${outcome.title} is already ${outcome.done ? 'done' : 'open'}.`,
+      ? `${mark} ${messages.toggle.marked(label, outcome.done)}`
+      : `${dim(sym.dot)} ${messages.toggle.already(label, outcome.done)}`,
   ];
   if (outcome.done) {
     if (outcome.newlyReady.length > 0) {
       for (const issue of outcome.newlyReady) {
-        lines.push(`${goldBright(sym.active)} Newly ready: ${gold(`${issue.number} — ${issue.title}`)}`);
+        lines.push(
+          `${goldBright(sym.active)} ${messages.toggle.newlyReady(gold(`${issue.number} — ${issue.title}`))}`,
+        );
       }
     } else {
-      lines.push(dim('No issues newly unblocked.'));
+      lines.push(dim(messages.toggle.noneUnblocked));
     }
   }
   return lines.join('\n');
@@ -32,9 +35,10 @@ function makeToggleCommand(name: string, description: string, done: boolean): Co
     .action(async (slug: string, number: string, _opts: unknown, cmd: Command) => {
       const padded = number.padStart(2, '0');
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
+      const messages = getMessages();
       const root = await resolveSpecsRoot(process.cwd());
       const outcome = await setIssueDone(root, slug, padded, done);
-      printResult(outcome, renderToggle(outcome), json);
+      printResult(outcome, renderToggle(outcome, messages), json);
     });
 }
 

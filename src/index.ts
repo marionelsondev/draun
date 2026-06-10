@@ -9,6 +9,7 @@ import { makeInitCommand } from './commands/init.js';
 import { makeInstructionsCommand } from './commands/instructions.js';
 import { makeIssuesCommand } from './commands/issues.js';
 import { makeNewCommand } from './commands/new.js';
+import { makeStartCommand } from './commands/start.js';
 import { makeStatusCommand } from './commands/status.js';
 import { makeUpdateCommand } from './commands/update.js';
 import { makeValidateCommand } from './commands/validate.js';
@@ -45,6 +46,7 @@ export function buildProgram(): Command {
   program.addCommand(makeInstructionsCommand());
   program.addCommand(makeStatusCommand());
   program.addCommand(makeIssuesCommand());
+  program.addCommand(makeStartCommand());
   program.addCommand(makeDoneCommand());
   program.addCommand(makeReopenCommand());
   program.addCommand(makeValidateCommand());

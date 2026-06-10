@@ -1,6 +1,6 @@
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parseIndex, type IndexIssue } from './index-parser.js';
+import { parseIndex, type IndexIssue, type IssueTrackState } from './index-parser.js';
 import { resolveIssues, type ResolvedIssue } from './issues.js';
 import { CliError } from './output.js';
 
@@ -8,17 +8,25 @@ export interface ToggleOutcome {
   slug: string;
   number: string;
   title: string;
+  state: IssueTrackState;
+  /** Derived from `state` — kept so existing consumers and JSON payloads stay stable. */
   done: boolean;
   changed: boolean;
   newlyReady: ResolvedIssue[];
 }
 
-const CHECKBOX_RE = /^(\s*-\s*\[)( |x|X)(\]\s*\[(\d{2}))/;
+const CHECKBOX_RE = /^(\s*-\s*\[)( |x|X|~)(\]\s*\[(\d{2}))/;
+
+const STATE_MARK: Record<IssueTrackState, string> = {
+  todo: ' ',
+  'in-progress': '~',
+  done: 'x',
+};
 
 export function toggleIssueInIndex(
   markdown: string,
   number: string,
-  done: boolean,
+  state: IssueTrackState,
 ): { markdown: string; issue: IndexIssue } | null {
   const parsed = parseIndex(markdown);
   const issue = parsed.find((i) => i.number === number);
@@ -42,9 +50,9 @@ export function toggleIssueInIndex(
     if (m === null || m[4] !== number) {
       continue;
     }
-    const replaced = m[1] + (done ? 'x' : ' ') + line.slice(m[1].length + 1);
+    const replaced = m[1] + STATE_MARK[state] + line.slice(m[1].length + 1);
     parts[i] = replaced;
-    return { markdown: parts.join(''), issue: { ...issue, done } };
+    return { markdown: parts.join(''), issue: { ...issue, state, done: state === 'done' } };
   }
   return null;
 }
@@ -55,15 +63,17 @@ export function computeNewlyReady(before: IndexIssue[], number: string): Resolve
       .filter((i) => i.state === 'ready')
       .map((i) => i.number),
   );
-  const after = before.map((i) => (i.number === number ? { ...i, done: true } : i));
+  const after = before.map((i) =>
+    i.number === number ? { ...i, done: true, state: 'done' as const } : i,
+  );
   return resolveIssues(after).filter((i) => i.state === 'ready' && !readyBefore.has(i.number));
 }
 
-export async function setIssueDone(
+export async function setIssueState(
   specsRoot: string,
   slug: string,
   number: string,
-  done: boolean,
+  state: IssueTrackState,
 ): Promise<ToggleOutcome> {
   const specDir = join(specsRoot, slug);
   let isDir = false;
@@ -73,7 +83,7 @@ export async function setIssueDone(
     // missing spec dir handled below
   }
   if (!isDir) {
-    throw new CliError(`unknown spec '${slug}'`, 1);
+    throw new CliError(`unknown spec '${slug}'`, 1, { key: 'unknown-spec', params: { slug } });
   }
 
   const indexPath = join(specDir, 'issues', 'INDEX.md');
@@ -81,25 +91,51 @@ export async function setIssueDone(
   try {
     markdown = await readFile(indexPath, 'utf8');
   } catch {
-    throw new CliError(`spec '${slug}' has not been broken down yet`, 1);
+    throw new CliError(`spec '${slug}' has not been broken down yet`, 1, {
+      key: 'not-broken-down',
+      params: { slug },
+    });
   }
 
   const before = parseIndex(markdown);
   const target = before.find((i) => i.number === number);
   if (target === undefined) {
-    throw new CliError(`issue '${number}' not found in INDEX.md`, 1);
+    throw new CliError(`issue '${number}' not found in INDEX.md`, 1, {
+      key: 'issue-not-found',
+      params: { number },
+    });
   }
 
-  const newlyReady = done ? computeNewlyReady(before, number) : [];
-
-  if (target.done === done) {
-    return { slug, number, title: target.title, done, changed: false, newlyReady };
+  if (state === 'in-progress' && target.done) {
+    throw new CliError(`issue '${number}' is already done — run midas reopen first`, 1, {
+      key: 'start-done-issue',
+      params: { number },
+    });
   }
 
-  const toggled = toggleIssueInIndex(markdown, number, done);
+  const newlyReady = state === 'done' ? computeNewlyReady(before, number) : [];
+  const done = state === 'done';
+
+  if (target.state === state) {
+    return { slug, number, title: target.title, state, done, changed: false, newlyReady };
+  }
+
+  const toggled = toggleIssueInIndex(markdown, number, state);
   if (toggled === null) {
-    throw new CliError(`issue '${number}' not found in INDEX.md`, 1);
+    throw new CliError(`issue '${number}' not found in INDEX.md`, 1, {
+      key: 'issue-not-found',
+      params: { number },
+    });
   }
   await writeFile(indexPath, toggled.markdown, 'utf8');
-  return { slug, number, title: target.title, done, changed: true, newlyReady };
+  return { slug, number, title: target.title, state, done, changed: true, newlyReady };
+}
+
+export async function setIssueDone(
+  specsRoot: string,
+  slug: string,
+  number: string,
+  done: boolean,
+): Promise<ToggleOutcome> {
+  return setIssueState(specsRoot, slug, number, done ? 'done' : 'todo');
 }

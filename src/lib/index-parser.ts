@@ -2,16 +2,26 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CliError } from './output.js';
 
+export type IssueTrackState = 'todo' | 'in-progress' | 'done';
+
 export interface IndexIssue {
   number: string;
   title: string;
   file: string;
+  /** Derived from `state` — kept so existing consumers and JSON payloads stay stable. */
   done: boolean;
+  state: IssueTrackState;
   blockedBy: string[];
 }
 
 const ISSUE_LINE_RE =
-  /^\s*-\s*\[( |x|X)\]\s*\[(\d{2})\s*[—-]+\s*(.+?)\]\(([^)]+)\)(?:\s*[—-]+\s*blocked by:\s*(.*))?\s*$/;
+  /^\s*-\s*\[( |x|X|~)\]\s*\[(\d{2})\s*[—-]+\s*(.+?)\]\(([^)]+)\)(?:\s*[—-]+\s*blocked by:\s*(.*))?\s*$/;
+
+export function checkboxState(mark: string): IssueTrackState {
+  if (mark.toLowerCase() === 'x') return 'done';
+  if (mark === '~') return 'in-progress';
+  return 'todo';
+}
 
 export function parseIndex(markdown: string): IndexIssue[] {
   const issues: IndexIssue[] = [];
@@ -38,11 +48,13 @@ export function parseIndex(markdown: string): IndexIssue[] {
             .map((s) => s.trim())
             .filter((s) => s !== '')
             .map((s) => (/^\d+$/.test(s) ? String(parseInt(s, 10)).padStart(2, '0') : s));
+    const state = checkboxState(m[1]);
     issues.push({
       number: m[2],
       title: m[3].trim(),
       file: m[4].trim(),
-      done: m[1].toLowerCase() === 'x',
+      done: state === 'done',
+      state,
       blockedBy,
     });
   }
@@ -54,6 +66,8 @@ export interface SpecStatus {
   brokenDown: boolean;
   total: number;
   done: number;
+  inProgress: number;
+  /** Issues not yet started (`[ ]`). */
   pending: number;
   issues: IndexIssue[];
 }
@@ -67,24 +81,26 @@ export async function readSpecStatus(specsRoot: string, slug: string): Promise<S
     // missing spec dir handled below
   }
   if (!isDir) {
-    throw new CliError(`unknown spec '${slug}'`, 1);
+    throw new CliError(`unknown spec '${slug}'`, 1, { key: 'unknown-spec', params: { slug } });
   }
 
   let markdown: string;
   try {
     markdown = await readFile(join(specDir, 'issues', 'INDEX.md'), 'utf8');
   } catch {
-    return { slug, brokenDown: false, total: 0, done: 0, pending: 0, issues: [] };
+    return { slug, brokenDown: false, total: 0, done: 0, inProgress: 0, pending: 0, issues: [] };
   }
 
   const issues = parseIndex(markdown);
   const done = issues.filter((i) => i.done).length;
+  const inProgress = issues.filter((i) => i.state === 'in-progress').length;
   return {
     slug,
     brokenDown: true,
     total: issues.length,
     done,
-    pending: issues.length - done,
+    inProgress,
+    pending: issues.length - done - inProgress,
     issues,
   };
 }

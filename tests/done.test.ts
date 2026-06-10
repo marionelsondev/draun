@@ -18,13 +18,19 @@ const INDEX_FIXTURE = `# Issues — Pricing Engine
 `;
 
 function issue(partial: Partial<IndexIssue> & { number: string }): IndexIssue {
-  return {
+  const base: IndexIssue = {
+    number: partial.number,
     title: `Issue ${partial.number}`,
     file: `${partial.number}-x.md`,
     done: false,
+    state: 'todo',
     blockedBy: [],
-    ...partial,
   };
+  const merged = { ...base, ...partial };
+  if (partial.state === undefined) {
+    merged.state = merged.done ? 'done' : 'todo';
+  }
+  return merged;
 }
 
 let dir: string;
@@ -39,7 +45,7 @@ afterEach(async () => {
 
 describe('toggleIssueInIndex', () => {
   it('checks only the target line', () => {
-    const result = toggleIssueInIndex(INDEX_FIXTURE, '01', true);
+    const result = toggleIssueInIndex(INDEX_FIXTURE, '01', 'done');
     expect(result).not.toBeNull();
     expect(result!.issue.done).toBe(true);
     expect(result!.markdown).toContain('- [x] [01 — Set up schema]');
@@ -48,18 +54,18 @@ describe('toggleIssueInIndex', () => {
   });
 
   it('unchecks only the target line', () => {
-    const result = toggleIssueInIndex(INDEX_FIXTURE, '02', false);
+    const result = toggleIssueInIndex(INDEX_FIXTURE, '02', 'todo');
     expect(result!.markdown).toContain('- [ ] [02 — Build calculator]');
     expect(result!.markdown).toContain('- [ ] [01 — Set up schema]');
   });
 
   it('returns null for a missing number', () => {
-    expect(toggleIssueInIndex(INDEX_FIXTURE, '99', true)).toBeNull();
+    expect(toggleIssueInIndex(INDEX_FIXTURE, '99', 'done')).toBeNull();
   });
 
   it('preserves CRLF line endings byte-for-byte except the checkbox', () => {
     const crlf = INDEX_FIXTURE.replace(/\n/g, '\r\n');
-    const result = toggleIssueInIndex(crlf, '01', true);
+    const result = toggleIssueInIndex(crlf, '01', 'done');
     expect(result!.markdown).toBe(crlf.replace('- [ ] [01', '- [x] [01'));
   });
 
@@ -72,7 +78,7 @@ describe('toggleIssueInIndex', () => {
 
 - [ ] [01 — Real issue](01-real.md) — blocked by: none
 `;
-    const result = toggleIssueInIndex(md, '01', true);
+    const result = toggleIssueInIndex(md, '01', 'done');
     expect(result!.markdown).toContain('- [ ] [01 — Stray line]');
     expect(result!.markdown).toContain('- [x] [01 — Real issue]');
   });
@@ -190,6 +196,7 @@ describe('renderToggle', () => {
       slug: 's',
       number: '01',
       title: 'Set up schema',
+      state: 'done',
       done: true,
       changed: true,
       newlyReady: [
@@ -205,6 +212,7 @@ describe('renderToggle', () => {
       slug: 's',
       number: '01',
       title: 'Set up schema',
+      state: 'done',
       done: true,
       changed: true,
       newlyReady: [],
@@ -217,6 +225,7 @@ describe('renderToggle', () => {
       slug: 's',
       number: '02',
       title: 'Build calculator',
+      state: 'todo',
       done: false,
       changed: true,
       newlyReady: [],
