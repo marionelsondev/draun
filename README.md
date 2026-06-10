@@ -70,7 +70,7 @@ Generated for each configured tool; commands and skills are the same four workfl
 
 | Workflow | What the agent does |
 | --- | --- |
-| `/midas:spec [spec-name]` | Scaffolds the spec if needed, asks clarifying questions, writes `SPEC.md` following the project's template and rules, validates. |
+| `/midas:spec [feature-description]` | Takes a free-form description of what you want, derives the spec name, scaffolds it, asks clarifying questions, writes `SPEC.md` following the project's template and rules, validates. |
 | `/midas:break [spec-slug]` | Breaks `SPEC.md` into small, independently verifiable issues with a `blocked by` dependency graph, validates. |
 | `/midas:implement [spec-slug] [manual\|auto\|ultracode]` | Implements ready issues. `manual`: one issue per run, you review between issues. `auto`: all ready issues sequentially. `ultracode`: parallel multi-agent execution following the dependency graph. |
 | `/midas:archive [spec-slug]` | Confirms every issue is done, validates, and archives the spec. |

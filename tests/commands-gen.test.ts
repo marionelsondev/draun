@@ -59,7 +59,7 @@ describe('renderCommandFile', () => {
     const content = renderCommandFile(spec, 'yaml');
     expect(content.startsWith('---\n')).toBe(true);
     expect(content).toContain(`description: ${spec.description}`);
-    expect(content).toContain('argument-hint: [spec-name]');
+    expect(content).toContain('argument-hint: [feature-description]');
     expect(content).toContain(spec.body);
   });
 

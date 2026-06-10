@@ -12,11 +12,14 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     name: 'spec',
     description: 'Write a SPEC.md for a new feature using the MidasSpec SDD workflow',
-    argumentHint: '[spec-name]',
+    argumentHint: '[feature-description]',
     body: `Write a functional spec (SPEC.md) for the feature the user described.
+The argument is a free-form description of what the user wants — not a spec
+name. Derive a short, human-readable spec name from it.
 
 1. If the spec folder does not exist yet, run \`midas new "<spec-name>" --json\`
-   to scaffold it. The output includes the spec slug and folder path.
+   with the derived name to scaffold it. The output includes the spec slug and
+   folder path.
 2. Run \`midas instructions spec --json\`. The payload contains the output path
    (\`relOutputPath\`), the expected markdown \`template\`, project \`context\`, and
    the project's \`rules\` for spec writing.
