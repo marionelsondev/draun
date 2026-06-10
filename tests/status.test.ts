@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Command } from 'commander';
 import { CliError } from '../src/lib/output.js';
 import { listSpecStatuses, parseIndex, readSpecStatus } from '../src/lib/index-parser.js';
-import { makeStatusCommand, renderSpecDetail } from '../src/commands/status.js';
+import { makeStatusCommand, renderSpecDetail, renderSpecList } from '../src/commands/status.js';
 import { getMessages } from '../src/lib/messages.js';
 
 // The status command resolves language via the global config in os.homedir();
@@ -189,6 +189,129 @@ describe('listSpecStatuses', () => {
 
     const statuses = await listSpecStatuses(dir);
     expect(statuses.map((s) => s.slug)).toEqual(['real-spec']);
+  });
+});
+
+describe('renderSpecList', () => {
+  type IssueSpec = { number: string; title?: string; state?: 'todo' | 'in-progress' | 'done'; blockedBy?: string[] };
+
+  function makeStatus(slug: string, issueSpecs: IssueSpec[], brokenDown = true) {
+    const issues = issueSpecs.map((i) => ({
+      number: i.number,
+      title: i.title ?? `Issue ${i.number}`,
+      file: `${i.number}-issue.md`,
+      done: i.state === 'done',
+      state: i.state ?? ('todo' as const),
+      blockedBy: i.blockedBy ?? [],
+    }));
+    return {
+      slug,
+      brokenDown,
+      total: issues.length,
+      done: issues.filter((i) => i.done).length,
+      inProgress: issues.filter((i) => i.state === 'in-progress').length,
+      pending: issues.filter((i) => !i.done && i.state !== 'in-progress').length,
+      issues,
+    };
+  }
+
+  it('groups specs under lifecycle headings and omits empty groups', () => {
+    const out = renderSpecList(
+      [
+        makeStatus('active-spec', [{ number: '01', state: 'done' }, { number: '02' }]),
+        makeStatus('fresh-spec', [{ number: '01' }]),
+        makeStatus('bare-spec', [], false),
+        makeStatus('finished-spec', [{ number: '01', state: 'done' }]),
+      ],
+      getMessages(),
+    );
+
+    const headingOrder = ['IN PROGRESS', 'NOT STARTED', 'NOT BROKEN DOWN', 'DONE (1)'].map((h) =>
+      out.indexOf(h),
+    );
+    expect(headingOrder.every((i) => i >= 0)).toBe(true);
+    expect(headingOrder).toEqual([...headingOrder].sort((a, b) => a - b));
+    expect(out).toContain('active-spec');
+    expect(out).toContain('bare-spec');
+    expect(out).toContain('not broken down');
+  });
+
+  it('omits headings for empty groups', () => {
+    const out = renderSpecList([makeStatus('only-active', [{ number: '01', state: 'in-progress' }])], getMessages());
+    expect(out).toContain('IN PROGRESS');
+    expect(out).not.toContain('NOT STARTED');
+    expect(out).not.toContain('NOT BROKEN DOWN');
+    expect(out).not.toContain('DONE');
+  });
+
+  it('sorts active specs: in-progress first, then higher completion', () => {
+    const out = renderSpecList(
+      [
+        makeStatus('half-done', [{ number: '01', state: 'done' }, { number: '02' }]),
+        makeStatus('mostly-done', [
+          { number: '01', state: 'done' },
+          { number: '02', state: 'done' },
+          { number: '03' },
+        ]),
+        makeStatus('has-wip', [{ number: '01', state: 'done' }, { number: '02', state: 'in-progress' }, { number: '03' }]),
+      ],
+      getMessages(),
+    );
+
+    const order = ['has-wip', 'mostly-done', 'half-done'].map((s) => out.indexOf(s));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it('shows the in-progress issue as next, falling back to the first ready issue', () => {
+    const out = renderSpecList(
+      [
+        makeStatus('wip-spec', [
+          { number: '01', title: 'Done one', state: 'done' },
+          { number: '02', title: 'Working on it', state: 'in-progress' },
+        ]),
+        makeStatus('ready-spec', [
+          { number: '01', title: 'Start here' },
+          { number: '02', title: 'Blocked one', blockedBy: ['01'] },
+        ]),
+      ],
+      getMessages(),
+    );
+
+    expect(out).toContain('next: 02 — Working on it');
+    expect(out).toContain('next: 01 — Start here');
+  });
+
+  it('omits the next line when every pending issue is blocked', () => {
+    const out = renderSpecList(
+      [
+        makeStatus('stuck-spec', [
+          { number: '01', state: 'done' },
+          { number: '02', blockedBy: ['03'] },
+          { number: '03', blockedBy: ['02'] },
+        ]),
+      ],
+      getMessages(),
+    );
+    expect(out).not.toContain('next:');
+  });
+
+  it('collapses completed specs into a single line with count and slugs', () => {
+    const out = renderSpecList(
+      [
+        makeStatus('alpha-done', [{ number: '01', state: 'done' }]),
+        makeStatus('beta-done', [{ number: '01', state: 'done' }]),
+      ],
+      getMessages(),
+    );
+
+    expect(out).toContain('DONE (2)');
+    expect(out).toContain('alpha-done');
+    expect(out).toContain('beta-done');
+    expect(out).not.toContain('issues ·');
+  });
+
+  it('keeps the no-specs message for an empty list', () => {
+    expect(renderSpecList([], getMessages())).toBe(getMessages().status.noSpecs);
   });
 });
 

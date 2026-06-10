@@ -18,6 +18,11 @@ export interface Messages {
     notBrokenDownBadge: string;
     blockedBy(list: string): string;
     inProgressLabel: string;
+    groupInProgress: string;
+    groupNotStarted: string;
+    groupNotBrokenDown: string;
+    groupDone(count: number): string;
+    nextIssue(number: string, title: string): string;
   };
   toggle: {
     marked(label: string, done: boolean): string;
@@ -53,6 +58,11 @@ const EN: Messages = {
     notBrokenDownBadge: 'not broken down',
     blockedBy: (list) => `blocked by: ${list}`,
     inProgressLabel: 'in progress',
+    groupInProgress: 'IN PROGRESS',
+    groupNotStarted: 'NOT STARTED',
+    groupNotBrokenDown: 'NOT BROKEN DOWN',
+    groupDone: (count) => `DONE (${count})`,
+    nextIssue: (number, title) => `next: ${number} — ${title}`,
   },
   toggle: {
     marked: (label, done) => `Marked ${label} as ${done ? 'done' : 'reopened'}.`,

@@ -62,6 +62,7 @@ export const sym = {
   check: u('✓', '+'),
   cross: u('✗', 'x'),
   dot: u('·', '-'),
+  arrow: u('→', '->'),
   wip: '~',
   blockFull: u('█', '#'),
   blockHalf: u('▓', '~'),
