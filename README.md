@@ -37,12 +37,11 @@ midas init --force                                  # reuse the global config, n
 
 ## The workflow
 
-1. `midas new "payment flow"` — scaffold `.midas/specs/payment-flow/`
-2. `/midas:spec` — your agent writes `SPEC.md`
-3. `/midas:break` — your agent breaks the spec into `issues/*.md` + `issues/INDEX.md` with dependencies
-4. `/midas:implement` — your agent implements ready issues (`manual`, `auto`, or `ultracode` parallel mode), tracking each with `start`/`done`
-5. `midas status` — follow progress
-6. `/midas:archive` — validate and archive the finished spec
+1. `/midas:spec "payment flow"` — your agent scaffolds `.midas/specs/payment-flow/` and writes `SPEC.md`
+2. `/midas:break` — your agent breaks the spec into `issues/*.md` + `issues/INDEX.md` with dependencies
+3. `/midas:implement` — your agent implements ready issues (`manual`, `auto`, or `ultracode` parallel mode), tracking each with `start`/`done`
+4. `midas status` — follow progress
+5. `/midas:archive` — validate and archive the finished spec
 
 Every step also works without an agent, via the commands below.
 

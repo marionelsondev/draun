@@ -37,12 +37,11 @@ midas init --force                                  # reusa a config global, sem
 
 ## O fluxo
 
-1. `midas new "fluxo de pagamento"` — cria `.midas/specs/fluxo-de-pagamento/`
-2. `/midas:spec` — seu agente escreve o `SPEC.md`
-3. `/midas:break` — seu agente quebra a spec em `issues/*.md` + `issues/INDEX.md` com dependências
-4. `/midas:implement` — seu agente implementa as issues prontas (modo `manual`, `auto` ou `ultracode` paralelo), registrando cada uma com `start`/`done`
-5. `midas status` — acompanhe o progresso
-6. `/midas:archive` — valida e arquiva a spec concluída
+1. `/midas:spec "fluxo de pagamento"` — seu agente cria `.midas/specs/fluxo-de-pagamento/` e escreve o `SPEC.md`
+2. `/midas:break` — seu agente quebra a spec em `issues/*.md` + `issues/INDEX.md` com dependências
+3. `/midas:implement` — seu agente implementa as issues prontas (modo `manual`, `auto` ou `ultracode` paralelo), registrando cada uma com `start`/`done`
+4. `midas status` — acompanhe o progresso
+5. `/midas:archive` — valida e arquiva a spec concluída
 
 Cada etapa também funciona sem agente, com os comandos abaixo.
 
