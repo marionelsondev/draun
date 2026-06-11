@@ -43,15 +43,17 @@ describe('renderSkillFile', () => {
 });
 
 describe('generateSkills', () => {
-  it('writes the four midas-* skill directories under each tool global skillsDir', async () => {
+  it('writes the five midas-* skill directories under each tool global skillsDir', async () => {
     const result = await generateSkills([claude, windsurf], home);
 
     expect(result.written).toEqual([
       join(home, '.claude', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.claude', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.claude', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.claude', 'skills', 'midas-archive', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-archive', 'SKILL.md'),
@@ -67,11 +69,12 @@ describe('generateSkills', () => {
     expect(skill).toContain('midas instructions spec --json');
   });
 
-  it('writes the four midas-* skill directories under the codex global skillsDir', async () => {
+  it('writes the five midas-* skill directories under the codex global skillsDir', async () => {
     const result = await generateSkills([codex], home);
 
     expect(result.written).toEqual([
       join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.codex', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.codex', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.codex', 'skills', 'midas-archive', 'SKILL.md'),
@@ -88,11 +91,12 @@ describe('generateSkills', () => {
     expect(skill).toContain('midas instructions spec --json');
   });
 
-  it('writes the four midas-* skill directories under the antigravity global skillsDir', async () => {
+  it('writes the five midas-* skill directories under the antigravity global skillsDir', async () => {
     const result = await generateSkills([antigravity], home);
 
     expect(result.written).toEqual([
       join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.gemini', 'antigravity', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.gemini', 'antigravity', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.gemini', 'antigravity', 'skills', 'midas-archive', 'SKILL.md'),
@@ -111,6 +115,7 @@ describe('generateSkills', () => {
 
     expect(result.written).toEqual([
       join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.gemini', 'antigravity', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.gemini', 'antigravity', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.gemini', 'antigravity', 'skills', 'midas-archive', 'SKILL.md'),
@@ -122,7 +127,7 @@ describe('generateSkills', () => {
     const result = await generateSkills([cursor, gemini, claude], home);
 
     expect(result.skipped).toEqual(['cursor', 'gemini']);
-    expect(result.written).toHaveLength(4);
+    expect(result.written).toHaveLength(5);
     expect(
       result.written.every((p) => p.startsWith(join(home, '.claude', 'skills')))
     ).toBe(true);
@@ -154,6 +159,7 @@ describe('generateSkills', () => {
     expect(result.skipped).toEqual(['claude']);
     expect(result.written).toEqual([
       join(home, '.windsurf', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.windsurf', 'skills', 'midas-archive', 'SKILL.md'),

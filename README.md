@@ -24,8 +24,8 @@ midas init
 The first `init` on your machine runs a one-time global setup: pick your AI tools and language (`en-US` or `pt-BR`), saved to `~/.midas/config.yaml`. Each project `init` then creates `.midas/specs/` and a minimal `.midas/config.yaml`, and generates three integration layers for the configured tools:
 
 - **`AGENTS.md` managed block** — SDD instructions between `<!-- midas:begin -->` / `<!-- midas:end -->` markers; your own content is never touched.
-- **Slash commands** — `/midas:spec`, `/midas:break`, `/midas:implement`, `/midas:archive` in each tool's native format.
-- **Agent skills** — `midas-spec`, `midas-break`, `midas-implement`, `midas-archive` (`SKILL.md`) under each tool's skills folder.
+- **Slash commands** — `/midas:spec`, `/midas:analyze`, `/midas:break`, `/midas:implement`, `/midas:archive` in each tool's native format.
+- **Agent skills** — `midas-spec`, `midas-analyze`, `midas-break`, `midas-implement`, `midas-archive` (`SKILL.md`) under each tool's skills folder.
 
 Non-interactive:
 
@@ -38,10 +38,11 @@ midas init --force                                  # reuse the global config, n
 ## The workflow
 
 1. `/midas:spec "payment flow"` — your agent scaffolds `.midas/specs/payment-flow/` and writes `SPEC.md`
-2. `/midas:break` — your agent breaks the spec into `issues/*.md` + `issues/INDEX.md` with dependencies
-3. `/midas:implement` — your agent implements ready issues (`manual`, `auto`, or `ultracode` parallel mode), tracking each with `start`/`done`
-4. `midas status` — follow progress
-5. `/midas:archive` — validate and archive the finished spec
+2. `/midas:analyze` — *(optional)* your agent reviews the spec for ambiguities, gaps, and risks before the breakdown
+3. `/midas:break` — your agent breaks the spec into `issues/*.md` + `issues/INDEX.md` with dependencies
+4. `/midas:implement` — your agent implements ready issues (`manual`, `auto`, or `ultracode` parallel mode), tracking each with `start`/`done`
+5. `midas status` — follow progress
+6. `/midas:archive` — validate and archive the finished spec
 
 Every step also works without an agent, via the commands below.
 
@@ -60,16 +61,17 @@ Every command accepts `--json` for machine-readable output (that's how the slash
 | `midas done <slug> <number>` | Mark an issue done (`[x]`) and report newly unblocked issues. |
 | `midas reopen <slug> <number>` | Reopen a done issue (`[ ]`). |
 | `midas validate <slug>` | Validate SPEC.md, issue files, and INDEX.md consistency. |
-| `midas instructions <spec\|break> [--spec <slug>]` | Emit artifact-writing instructions (template, context, rules) for AI skills. |
+| `midas instructions <spec\|break\|analyze> [--spec <slug>]` | Emit artifact-writing instructions (template, context, rules) for AI skills. |
 | `midas archive <slug> [--force]` | Move a finished spec to `.midas/specs/archive/`. |
 
 ## Slash commands / skills
 
-Generated for each configured tool; commands and skills are the same four workflows:
+Generated for each configured tool; commands and skills are the same five workflows:
 
 | Workflow | What the agent does |
 | --- | --- |
 | `/midas:spec [feature-description]` | Takes a free-form description of what you want, derives the spec name, scaffolds it, asks clarifying questions, writes `SPEC.md` following the project's template and rules, validates. |
+| `/midas:analyze [spec-slug]` | *(optional)* Reviews `SPEC.md` for ambiguities, missing edge cases, untestable behaviors, and scope risks, reporting findings by severity — read-only, never edits the spec. |
 | `/midas:break [spec-slug]` | Breaks `SPEC.md` into small, independently verifiable issues with a `blocked by` dependency graph, validates. |
 | `/midas:implement [spec-slug] [manual\|auto\|ultracode]` | Implements ready issues. `manual`: one issue per run, with an optional plan-first step, you review between issues. `auto`: all ready issues sequentially via subagents (planner → implementer per issue). `ultracode`: parallel multi-agent workflow following the dependency graph; falls back to `auto` if the agent has no workflow feature. |
 | `/midas:archive [spec-slug]` | Confirms every issue is done, validates, and archives the spec. |
@@ -95,6 +97,7 @@ language: en-US   # en-US | pt-BR — language of specs/issues and AI conversati
 # rules:                    # per-artifact rules for `midas instructions`
 #   spec: []
 #   break: []
+#   analyze: []
 ```
 
 CLI human output is always English; `language` governs spec/issue content and the AI conversation.

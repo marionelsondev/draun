@@ -147,7 +147,7 @@ describe('midas init --tools', () => {
     ]);
   });
 
-  it('--tools antigravity installs the four skills and workflows', async () => {
+  it('--tools antigravity installs the five skills and workflows', async () => {
     const { code, out } = await run(['init', '--tools', 'antigravity', '--json']);
     expect(code).toBe(0);
 
@@ -158,6 +158,7 @@ describe('midas init --tools', () => {
     const entry = payload.generated.skills.byTool.find((e) => e.tool === 'antigravity');
     expect(entry?.files).toEqual([
       join(skillsRoot, 'midas-spec', 'SKILL.md'),
+      join(skillsRoot, 'midas-analyze', 'SKILL.md'),
       join(skillsRoot, 'midas-break', 'SKILL.md'),
       join(skillsRoot, 'midas-implement', 'SKILL.md'),
       join(skillsRoot, 'midas-archive', 'SKILL.md'),
@@ -172,6 +173,7 @@ describe('midas init --tools', () => {
     const commandsEntry = payload.generated.commands.byTool.find((e) => e.tool === 'antigravity');
     expect(commandsEntry?.files).toEqual([
       join(workflowsDir, 'midas-spec.md'),
+      join(workflowsDir, 'midas-analyze.md'),
       join(workflowsDir, 'midas-break.md'),
       join(workflowsDir, 'midas-implement.md'),
       join(workflowsDir, 'midas-archive.md'),
@@ -183,7 +185,7 @@ describe('midas init --tools', () => {
     expect(await exists(join(dir, '.gemini'))).toBe(false);
   });
 
-  it('--tools gemini installs the four TOML commands and skips skills', async () => {
+  it('--tools gemini installs the five TOML commands and skips skills', async () => {
     const { code, out } = await run(['init', '--tools', 'gemini', '--json']);
     expect(code).toBe(0);
 
@@ -193,6 +195,7 @@ describe('midas init --tools', () => {
     const entry = payload.generated.commands.byTool.find((e) => e.tool === 'gemini');
     expect(entry?.files).toEqual([
       join(home, '.gemini', 'commands', 'midas', 'spec.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'analyze.toml'),
       join(home, '.gemini', 'commands', 'midas', 'break.toml'),
       join(home, '.gemini', 'commands', 'midas', 'implement.toml'),
       join(home, '.gemini', 'commands', 'midas', 'archive.toml'),

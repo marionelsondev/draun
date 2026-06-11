@@ -15,6 +15,7 @@ context:
 # rules:
 #   spec: []                   # per-artifact rules for \`midas spec\`
 #   break: []                  # per-artifact rules for \`midas break\`
+#   analyze: []                # per-artifact rules for \`midas analyze\`
 rules:
 `;
 

@@ -44,7 +44,7 @@ describe('resolveConfig', () => {
       language: 'en-US',
       tools: [],
       context: null,
-      rules: { spec: [], break: [] },
+      rules: { spec: [], break: [], analyze: [] },
     });
   });
 
@@ -56,7 +56,7 @@ describe('resolveConfig', () => {
     expect(config.language).toBe('pt-BR');
     expect(config.tools).toEqual(['claude-code']);
     expect(config.context).toBe('global ctx');
-    expect(config.rules).toEqual({ spec: [], break: [] });
+    expect(config.rules).toEqual({ spec: [], break: [], analyze: [] });
   });
 
   it('uses the project layer when only it exists', async () => {
@@ -68,13 +68,13 @@ describe('resolveConfig', () => {
 
     expect(config.language).toBe('pt-BR');
     expect(config.context).toBe('project ctx');
-    expect(config.rules).toEqual({ spec: ['rule a'], break: ['rule b'] });
+    expect(config.rules).toEqual({ spec: ['rule a'], break: ['rule b'], analyze: [] });
     expect(config.tools).toEqual([]);
   });
 
   it('project overrides global per field, absent fields fall through', async () => {
     await writeGlobalConfig(
-      'language: en-US\ntools:\n  - claude-code\ncontext: global ctx\nrules:\n  spec:\n    - global spec rule\n  break:\n    - global break rule\n',
+      'language: en-US\ntools:\n  - claude-code\ncontext: global ctx\nrules:\n  spec:\n    - global spec rule\n  break:\n    - global break rule\n  analyze:\n    - global analyze rule\n',
     );
     await writeProjectConfig('language: pt-BR\nrules:\n  spec:\n    - project spec rule\n');
 
@@ -84,6 +84,7 @@ describe('resolveConfig', () => {
     expect(config.context).toBe('global ctx'); // absent in project, falls to global
     expect(config.rules.spec).toEqual(['project spec rule']); // project wins per subfield
     expect(config.rules.break).toEqual(['global break rule']); // falls to global
+    expect(config.rules.analyze).toEqual(['global analyze rule']); // falls to global
     expect(config.tools).toEqual(['claude-code']); // global only
   });
 

@@ -8,6 +8,7 @@ import { DEFAULT_SPECS_ROOT } from '../src/lib/init.js';
 import {
   getInstructions,
   loadConfig,
+  ANALYSIS_TEMPLATE,
   ISSUE_TEMPLATE,
   LANGUAGE_DIRECTIVES,
   SPEC_TEMPLATE,
@@ -35,6 +36,8 @@ rules:
     - name behaviors in kebab-case
   break:
     - one issue per behavior
+  analyze:
+    - flag behaviors without an error path
 `;
 
 async function writeConfig(content: string): Promise<void> {
@@ -74,6 +77,35 @@ describe('getInstructions', () => {
     expect(payload.context).toContain('Internal billing platform.');
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'issues'));
     expect(payload.relOutputPath).toBe('.midas/specs/pricing-engine/issues');
+  });
+
+  it('returns analysis template, analyze rules, and the SPEC.md path for analyze', async () => {
+    await writeConfig(FULL_CONFIG);
+    await scaffoldSpec('pricing-engine');
+
+    const payload = await getInstructions(dir, 'analyze', 'pricing-engine', home);
+
+    expect(payload.artifact).toBe('analyze');
+    expect(payload.template).toBe(ANALYSIS_TEMPLATE);
+    expect(payload.rules).toEqual(['flag behaviors without an error path']);
+    expect(payload.context).toContain('Internal billing platform.');
+    expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'SPEC.md'));
+    expect(payload.relOutputPath).toBe('.midas/specs/pricing-engine/SPEC.md');
+  });
+
+  it('rejects with CliError exit 1 for analyze with an unknown slug', async () => {
+    await writeConfig(FULL_CONFIG);
+
+    await expect(getInstructions(dir, 'analyze', 'no-such-spec', home)).rejects.toMatchObject({
+      exitCode: 1,
+      message: expect.stringContaining("unknown spec 'no-such-spec'"),
+    });
+  });
+
+  it('rejects with CliError exit 2 for analyze without a slug', async () => {
+    await writeConfig(FULL_CONFIG);
+
+    await expect(getInstructions(dir, 'analyze', undefined, home)).rejects.toMatchObject({ exitCode: 2 });
   });
 
   it('uses a <slug> placeholder path for spec without a slug', async () => {
@@ -224,7 +256,7 @@ describe('loadConfig', () => {
       language: 'en-US',
       tools: [],
       context: null,
-      rules: { spec: [], break: [] },
+      rules: { spec: [], break: [], analyze: [] },
     });
   });
 });

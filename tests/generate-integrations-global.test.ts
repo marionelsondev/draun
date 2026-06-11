@@ -61,6 +61,7 @@ describe('generateIntegrations (global destinations)', () => {
     expect(entry).toBeDefined();
     expect(entry?.files).toEqual([
       join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'midas-analyze', 'SKILL.md'),
       join(home, '.codex', 'skills', 'midas-break', 'SKILL.md'),
       join(home, '.codex', 'skills', 'midas-implement', 'SKILL.md'),
       join(home, '.codex', 'skills', 'midas-archive', 'SKILL.md'),

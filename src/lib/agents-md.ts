@@ -26,9 +26,11 @@ The cycle is spec → break → implement → archive. If the midas slash comman
 or skills are available to you, prefer them — each wraps a stage end to end:
 
 1. \`/midas:spec\` — write the \`SPEC.md\` for a new feature.
-2. \`/midas:break\` — break the spec into issues with a dependency graph.
-3. \`/midas:implement\` — implement the ready issues, tracking each one.
-4. \`/midas:archive\` — validate and archive the finished spec.
+2. \`/midas:analyze\` — (optional) review the spec for ambiguities, gaps, and
+   risks before breaking it down.
+3. \`/midas:break\` — break the spec into issues with a dependency graph.
+4. \`/midas:implement\` — implement the ready issues, tracking each one.
+5. \`/midas:archive\` — validate and archive the finished spec.
 
 Without them, drive the same loop with the CLI:
 

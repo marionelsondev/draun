@@ -6,7 +6,7 @@ import { requireProjectRoot, resolveConfig, type ResolvedConfig } from './config
 import type { Language } from './language.js';
 import { resolveSpecsRoot } from './new.js';
 
-export type Artifact = 'spec' | 'break';
+export type Artifact = 'spec' | 'break' | 'analyze';
 
 export const SPEC_TEMPLATE = `# <Title>
 
@@ -67,6 +67,29 @@ export const ISSUE_TEMPLATE = `# NN — <Title>
 - None
 `;
 
+export const ANALYSIS_TEMPLATE = `# Spec Analysis — <Spec Title>
+
+## Summary
+
+<One-paragraph verdict: is the spec ready to be broken into issues?>
+
+## Findings
+
+### <finding-slug> — <critical | warning | suggestion>
+
+- **Where**: <page, component, or behavior in SPEC.md>
+- **Problem**: <what is ambiguous, missing, or risky>
+- **Suggestion**: <how to fix or what to clarify>
+
+## Open Questions to resolve
+
+- <question the user must answer before breaking the spec> or None
+
+## Verdict
+
+<ready | needs work> — <short justification>
+`;
+
 export const LANGUAGE_DIRECTIVES: Record<Language, string> = {
   'en-US':
     'Write all prose content (titles, descriptions, behaviors) in English (United States) and converse with the user in English (United States). Keep structural headings and INDEX.md syntax (e.g., `## Overview`, `## All issues`, checkbox lines, `blocked by:` annotations) in English.',
@@ -120,7 +143,7 @@ export async function getInstructions(
   }
 
   if (specSlug === undefined || specSlug === '') {
-    throw new CliError("'break' requires --spec <slug>", 2);
+    throw new CliError(`'${artifact}' requires --spec <slug>`, 2);
   }
 
   const specPath = join(root, specSlug, 'SPEC.md');
@@ -128,6 +151,19 @@ export async function getInstructions(
     await readFile(specPath);
   } catch {
     throw new CliError(`unknown spec '${specSlug}'`, 1);
+  }
+
+  if (artifact === 'analyze') {
+    return {
+      artifact,
+      template: ANALYSIS_TEMPLATE,
+      rules: config.rules.analyze,
+      context: config.context,
+      language: config.language,
+      languageDirective: LANGUAGE_DIRECTIVES[config.language],
+      outputPath: specPath,
+      relOutputPath: toPosix(relative(cwd, specPath)),
+    };
   }
 
   const outputPath = join(root, specSlug, 'issues');

@@ -25,9 +25,10 @@ afterEach(async () => {
 });
 
 describe('WORKFLOW_TEMPLATES', () => {
-  it('defines the four workflow commands', () => {
+  it('defines the five workflow commands', () => {
     expect(WORKFLOW_TEMPLATES.map((t) => t.name)).toEqual([
       'spec',
+      'analyze',
       'break',
       'implement',
       'archive',
@@ -53,6 +54,15 @@ describe('WORKFLOW_TEMPLATES', () => {
     expect(impl.body).toContain('midas done <spec-slug>');
     // The ultracode recipe must keep INDEX.md writes serialized in the orchestrator.
     expect(impl.body).toContain('ONLY the orchestrator writes to INDEX.md');
+  });
+
+  it('analyze reviews the spec without editing it and points to break next', () => {
+    const analyze = WORKFLOW_TEMPLATES.find((t) => t.name === 'analyze')!;
+    expect(analyze.argumentHint).toBe('[spec-slug]');
+    expect(analyze.body).toContain('midas instructions analyze --spec <spec-slug> --json');
+    expect(analyze.body).toContain('midas validate <spec-slug> --json');
+    expect(analyze.body).toContain('Do NOT rewrite or edit SPEC.md');
+    expect(analyze.body).toContain('/midas:break <spec-slug>');
   });
 });
 
@@ -114,15 +124,17 @@ describe('renderCommandFile toml', () => {
 });
 
 describe('generateCommands', () => {
-  it('writes the four command files at each tool global path', async () => {
+  it('writes the five command files at each tool global path', async () => {
     const result = await generateCommands([claude, cursor], home);
 
     expect(result.written).toEqual([
       join(home, '.claude', 'commands', 'midas', 'spec.md'),
+      join(home, '.claude', 'commands', 'midas', 'analyze.md'),
       join(home, '.claude', 'commands', 'midas', 'break.md'),
       join(home, '.claude', 'commands', 'midas', 'implement.md'),
       join(home, '.claude', 'commands', 'midas', 'archive.md'),
       join(home, '.cursor', 'commands', 'midas-spec.md'),
+      join(home, '.cursor', 'commands', 'midas-analyze.md'),
       join(home, '.cursor', 'commands', 'midas-break.md'),
       join(home, '.cursor', 'commands', 'midas-implement.md'),
       join(home, '.cursor', 'commands', 'midas-archive.md'),
@@ -141,12 +153,13 @@ describe('generateCommands', () => {
     expect(cursorSpec).toContain('midas instructions spec --json');
   });
 
-  it('writes the four gemini TOML commands under the global home', async () => {
+  it('writes the five gemini TOML commands under the global home', async () => {
     const result = await generateCommands([gemini], home);
 
     expect(result.skipped).toEqual([]);
     expect(result.written).toEqual([
       join(home, '.gemini', 'commands', 'midas', 'spec.toml'),
+      join(home, '.gemini', 'commands', 'midas', 'analyze.toml'),
       join(home, '.gemini', 'commands', 'midas', 'break.toml'),
       join(home, '.gemini', 'commands', 'midas', 'implement.toml'),
       join(home, '.gemini', 'commands', 'midas', 'archive.toml'),
@@ -161,13 +174,14 @@ describe('generateCommands', () => {
     expect(doc.prompt).toContain('midas instructions spec --json');
   });
 
-  it('writes the four antigravity workflows under global_workflows', async () => {
+  it('writes the five antigravity workflows under global_workflows', async () => {
     const result = await generateCommands([antigravity], home);
 
     const workflowsDir = join(home, '.gemini', 'antigravity', 'global_workflows');
     expect(result.skipped).toEqual([]);
     expect(result.written).toEqual([
       join(workflowsDir, 'midas-spec.md'),
+      join(workflowsDir, 'midas-analyze.md'),
       join(workflowsDir, 'midas-break.md'),
       join(workflowsDir, 'midas-implement.md'),
       join(workflowsDir, 'midas-archive.md'),
@@ -184,6 +198,7 @@ describe('generateCommands', () => {
     await generateCommands([antigravity], home);
     const entries = (await readdir(workflowsDir)).sort();
     expect(entries).toEqual([
+      'midas-analyze.md',
       'midas-archive.md',
       'midas-break.md',
       'midas-implement.md',
@@ -195,7 +210,7 @@ describe('generateCommands', () => {
     const result = await generateCommands([windsurf, codex, claude], home);
 
     expect(result.skipped).toEqual(['windsurf', 'codex']);
-    expect(result.written).toHaveLength(4);
+    expect(result.written).toHaveLength(5);
     expect(result.written.every((p) => p.startsWith(join(home, '.claude')))).toBe(true);
   });
 
@@ -223,6 +238,7 @@ describe('generateCommands', () => {
     expect(result.skipped).toEqual(['claude']);
     expect(result.written).toEqual([
       join(home, '.cursor', 'commands', 'midas-spec.md'),
+      join(home, '.cursor', 'commands', 'midas-analyze.md'),
       join(home, '.cursor', 'commands', 'midas-break.md'),
       join(home, '.cursor', 'commands', 'midas-implement.md'),
       join(home, '.cursor', 'commands', 'midas-archive.md'),

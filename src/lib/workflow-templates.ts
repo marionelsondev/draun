@@ -29,7 +29,37 @@ name. Derive a short, human-readable spec name from it.
    every rule. Describe components and behaviors — not implementation.
 5. Run \`midas validate <spec-slug> --json\` and fix any reported problems.
 6. Tell the user the spec is ready and that the next step is
-   \`/midas:break <spec-slug>\` to break it into issues.`,
+   \`/midas:break <spec-slug>\` to break it into issues — optionally preceded
+   by \`/midas:analyze <spec-slug>\` to review the spec's quality first.`,
+  },
+  {
+    name: 'analyze',
+    description:
+      'Analyze an existing SPEC.md for ambiguities, gaps, and risks before breaking it into issues (optional quality review)',
+    argumentHint: '[spec-slug]',
+    body: `Analyze an existing SPEC.md and produce a structured review of its quality
+before it is broken into issues. This step is optional and read-only: it
+reports findings and lets the user decide — it never edits the spec.
+
+1. Run \`midas instructions analyze --spec <spec-slug> --json\`. The payload
+   contains the spec's path (\`relOutputPath\`), the report \`template\`, project
+   \`context\`, and the project's \`rules\` for spec analysis.
+2. Run \`midas validate <spec-slug> --json\` and carry any reported problems
+   into the findings.
+3. Read the SPEC.md and analyze it against the project context, looking for:
+   - ambiguous or contradictory behaviors;
+   - missing edge cases, error paths, and empty/initial states;
+   - implementation details leaking into what should stay functional;
+   - behaviors that cannot be verified by a test;
+   - unresolved Open Questions and hidden assumptions;
+   - scope risks: pages or behaviors too large to break into small issues.
+4. Report the findings in the chat following the returned \`template\` sections
+   exactly, ordered by severity. Be specific — name the page, component, or
+   behavior each finding refers to, and say so explicitly when a finding is a
+   hypothesis rather than a fact. Do NOT rewrite or edit SPEC.md yourself.
+5. Tell the user they can fix the spec (with your help or via
+   \`/midas:spec\`), or proceed to \`/midas:break <spec-slug>\` if the findings
+   are acceptable.`,
   },
   {
     name: 'break',
