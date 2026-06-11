@@ -91,7 +91,7 @@ export interface ResolvedConfig {
   language: Language;
   tools: string[];
   context: string | null;
-  rules: { spec: string[]; break: string[] };
+  rules: { spec: string[]; break: string[]; analyze: string[] };
 }
 
 function coerceStringList(value: unknown): string[] {
@@ -133,7 +133,7 @@ export async function resolveConfig(cwd: string, homeDir = homedir()): Promise<R
 
   const projectRules = rulesLayer(project);
   const globalRules = rulesLayer(global);
-  const ruleField = (key: 'spec' | 'break'): string[] => {
+  const ruleField = (key: 'spec' | 'break' | 'analyze'): string[] => {
     const fromProject = projectRules[key];
     if (typeof fromProject === 'string' || Array.isArray(fromProject)) {
       return coerceStringList(fromProject);
@@ -149,6 +149,6 @@ export async function resolveConfig(cwd: string, homeDir = homedir()): Promise<R
     language,
     tools,
     context,
-    rules: { spec: ruleField('spec'), break: ruleField('break') },
+    rules: { spec: ruleField('spec'), break: ruleField('break'), analyze: ruleField('analyze') },
   };
 }
