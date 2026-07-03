@@ -36,8 +36,8 @@ let dir: string;
 let home: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-status-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-status-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-status-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-status-home-'));
   mocked.home = home;
 });
 
@@ -331,7 +331,7 @@ describe('renderSpecDetail', () => {
 
 describe('makeStatusCommand', () => {
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });
@@ -358,7 +358,7 @@ describe('makeStatusCommand', () => {
   }
 
   it('emits a single JSON doc listing specs with --json', async () => {
-    const specsRoot = join(dir, '.midas', 'specs');
+    const specsRoot = join(dir, '.draun', 'specs');
     await mkdir(join(specsRoot, 'pricing-engine', 'issues'), { recursive: true });
     await writeFile(join(specsRoot, 'pricing-engine', 'issues', 'INDEX.md'), INDEX_FIXTURE, 'utf8');
 
@@ -371,7 +371,7 @@ describe('makeStatusCommand', () => {
   });
 
   it('shows detail for a known slug with --json', async () => {
-    const specsRoot = join(dir, '.midas', 'specs');
+    const specsRoot = join(dir, '.draun', 'specs');
     await mkdir(join(specsRoot, 'pricing-engine', 'issues'), { recursive: true });
     await writeFile(join(specsRoot, 'pricing-engine', 'issues', 'INDEX.md'), INDEX_FIXTURE, 'utf8');
 
@@ -384,7 +384,7 @@ describe('makeStatusCommand', () => {
   });
 
   it('shows a not-broken-down spec without erroring', async () => {
-    const specsRoot = join(dir, '.midas', 'specs');
+    const specsRoot = join(dir, '.draun', 'specs');
     await mkdir(join(specsRoot, 'bare-spec'), { recursive: true });
 
     const out = await runCapture(['status', 'bare-spec'], dir);
@@ -392,7 +392,7 @@ describe('makeStatusCommand', () => {
   });
 
   it('rejects with CliError for an unknown slug', async () => {
-    await mkdir(join(dir, '.midas', 'specs'), { recursive: true });
+    await mkdir(join(dir, '.draun', 'specs'), { recursive: true });
     const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(dir);
     try {
       await expect(

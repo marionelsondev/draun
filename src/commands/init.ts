@@ -28,7 +28,7 @@ interface InitOptions {
 
 export function renderToolFiles(
   layer: string,
-  group: GeneratedReport['commands'],
+  group: GeneratedReport['skills'],
   lines: string[]
 ): void {
   if (group.byTool.length === 0 && group.skipped.length === 0) {
@@ -48,9 +48,9 @@ export function renderToolFiles(
 }
 
 export function renderInit(payload: InitPayload, cwd: string): string {
-  const lines: string[] = [header('Spec-Driven Development'), line()];
+  const lines: string[] = [header('init'), line()];
   lines.push(
-    step(payload.initialized ? 'Initialized MidasSpec project.' : 'Project already initialized.')
+    step(payload.initialized ? 'Initialized Draun project.' : 'Project already initialized.')
   );
   lines.push(
     line(
@@ -78,10 +78,9 @@ export function renderInit(payload: InitPayload, cwd: string): string {
   lines.push(step(`Language: ${gold(payload.language)}`));
   lines.push(line());
   lines.push(step(`${payload.generated.agents.path} ${dim(payload.generated.agents.action)}`));
-  renderToolFiles('Slash commands', payload.generated.commands, lines);
   renderToolFiles('Skills', payload.generated.skills, lines);
   lines.push(line());
-  lines.push(footer(`${dim(`Next ${sym.dot} try`)} ${gold('/midas:spec')} ${dim('in your agent')}`));
+  lines.push(footer(`${dim(`Next ${sym.dot} use the`)} ${gold('draun-spec')} ${dim('skill in your agent')}`));
   return lines.join('\n');
 }
 

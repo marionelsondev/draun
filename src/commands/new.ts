@@ -11,7 +11,7 @@ export function makeNewCommand(): Command {
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
       try {
         const result = await newSpec(process.cwd(), name);
-        const humanText = `${gold(sym.check)} Created ${gold(result.relDir)}\n${dim(`Write the spec to ${result.relSpecPath} — or run`)} ${gold('/midas:spec')} ${dim('in your agent')}`;
+        const humanText = `${gold(sym.check)} Created ${gold(result.relDir)}\n${dim(`Write the spec to ${result.relSpecPath} — or use the`)} ${gold('draun-spec')} ${dim('skill in your agent')}`;
         printResult(result, humanText, json);
       } catch (err) {
         if (err instanceof SpecConflictError) {

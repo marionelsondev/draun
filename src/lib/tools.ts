@@ -3,18 +3,9 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { CliError } from './output.js';
 
-export type CommandFormat = 'yaml' | 'none' | 'toml';
-
-export interface ToolCommands {
-  /** Relative path (posix) of the command file for a given command name. */
-  pathFor: (name: string) => string;
-  format: CommandFormat;
-}
-
 /** Global install destinations, declared relative to the user's home directory. */
 export interface ToolGlobalPaths {
   skillsDir?: string;
-  commands?: ToolCommands;
 }
 
 export interface ToolDescriptor {
@@ -26,7 +17,6 @@ export interface ToolDescriptor {
   markerFiles?: string[];
   /** When true, detection requires a marker file — rootDir alone is too generic. */
   markerOnlyDetection?: boolean;
-  commands?: ToolCommands;
   skillsDir?: string;
   /** Global (home-relative) destinations; omitted when no global convention applies. */
   global?: ToolGlobalPaths;
@@ -38,32 +28,18 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
     name: 'Claude Code',
     rootDir: '.claude',
     markerFiles: ['CLAUDE.md'],
-    commands: {
-      pathFor: (name) => `.claude/commands/midas/${name}.md`,
-      format: 'yaml',
-    },
     skillsDir: '.claude/skills',
     global: {
       skillsDir: '.claude/skills',
-      commands: {
-        pathFor: (name) => `.claude/commands/midas/${name}.md`,
-        format: 'yaml',
-      },
     },
   },
   {
     id: 'cursor',
     name: 'Cursor',
     rootDir: '.cursor',
-    commands: {
-      pathFor: (name) => `.cursor/commands/midas-${name}.md`,
-      format: 'none',
-    },
+    skillsDir: '.cursor/skills',
     global: {
-      commands: {
-        pathFor: (name) => `.cursor/commands/midas-${name}.md`,
-        format: 'none',
-      },
+      skillsDir: '.cursor/skills',
     },
   },
   {
@@ -77,7 +53,7 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
   },
   {
     id: 'codex',
-    name: 'Codex CLI',
+    name: 'Codex',
     rootDir: '.codex',
     skillsDir: '.codex/skills',
     global: {
@@ -91,32 +67,22 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
     markerFiles: ['.agent'],
     global: {
       skillsDir: '.gemini/antigravity/skills',
-      commands: {
-        pathFor: (name) => `.gemini/antigravity/global_workflows/midas-${name}.md`,
-        format: 'yaml',
-      },
     },
   },
   {
-    id: 'gemini',
-    name: 'Gemini CLI',
-    rootDir: '.gemini',
-    markerFiles: ['GEMINI.md'],
+    id: 'opencode',
+    name: 'Opencode',
+    rootDir: '.opencode',
+    markerFiles: ['opencode.json', 'opencode.jsonc'],
+    skillsDir: '.opencode/skills',
     global: {
-      commands: {
-        pathFor: (name) => `.gemini/commands/midas/${name}.toml`,
-        format: 'toml',
-      },
+      skillsDir: '.config/opencode/skills',
     },
   },
 ];
 
 export interface ResolvedGlobalPaths {
   skillsDir?: string;
-  commands?: {
-    pathFor: (name: string) => string;
-    format: CommandFormat;
-  };
 }
 
 /**
@@ -133,13 +99,6 @@ export function resolveGlobalPaths(
   const resolved: ResolvedGlobalPaths = {};
   if (tool.global.skillsDir !== undefined) {
     resolved.skillsDir = join(home, tool.global.skillsDir);
-  }
-  if (tool.global.commands !== undefined) {
-    const { pathFor, format } = tool.global.commands;
-    resolved.commands = {
-      pathFor: (name) => join(home, pathFor(name)),
-      format,
-    };
   }
   return resolved;
 }

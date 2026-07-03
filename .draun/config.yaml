@@ -1,0 +1,8 @@
+# Draun project configuration
+# context: |                   # project background shown to AI skills
+context:
+# rules:
+#   spec: []                   # per-artifact rules for `draun spec`
+#   break: []                  # per-artifact rules for `draun break`
+#   analyze: []                # per-artifact rules for `draun analyze`
+rules:

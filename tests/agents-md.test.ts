@@ -13,7 +13,7 @@ import {
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-agents-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-agents-'));
 });
 
 afterEach(async () => {
@@ -123,13 +123,13 @@ describe('writeAgentsBlock', () => {
   });
 
   it('documents command invocations that match the real CLI signatures', () => {
-    expect(MANAGED_BLOCK).toContain('midas issues <spec-slug> --ready');
-    expect(MANAGED_BLOCK).toContain('midas done <spec-slug> <issue-number>');
-    expect(MANAGED_BLOCK).toContain('midas reopen <spec-slug> <issue-number>');
-    expect(MANAGED_BLOCK).toContain('midas validate <spec-slug>');
-    expect(MANAGED_BLOCK).toContain('midas start <spec-slug> <issue-number>');
-    expect(MANAGED_BLOCK).toContain('/midas:spec');
-    expect(MANAGED_BLOCK).toContain('.midas/config.yaml');
+    expect(MANAGED_BLOCK).toContain('draun issues <spec-slug> --ready');
+    expect(MANAGED_BLOCK).toContain('draun done <spec-slug> <issue-number>');
+    expect(MANAGED_BLOCK).toContain('draun reopen <spec-slug> <issue-number>');
+    expect(MANAGED_BLOCK).toContain('draun validate <spec-slug>');
+    expect(MANAGED_BLOCK).toContain('draun start <spec-slug> <issue-number>');
+    expect(MANAGED_BLOCK).toContain('draun-spec');
+    expect(MANAGED_BLOCK).toContain('.draun/config.yaml');
   });
 
   it('is idempotent with surrounding user content', async () => {

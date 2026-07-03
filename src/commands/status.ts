@@ -4,6 +4,7 @@ import { resolveSpecsRoot } from '../lib/new.js';
 import { getMessages, type Messages } from '../lib/messages.js';
 import { listSpecStatuses, readSpecStatus, type IndexIssue, type SpecStatus } from '../lib/index-parser.js';
 import { resolveIssues, type ResolvedIssue } from '../lib/issues.js';
+import { classify, compareActiveSpecs, type SpecGroup } from '../tui/data.js';
 import { bold, dim, gold, goldBright, progressBar, sym } from '../lib/theme.js';
 
 function renderIssueLine(issue: IndexIssue, messages: Messages): string {
@@ -32,21 +33,6 @@ export function renderSpecDetail(status: SpecStatus, messages: Messages = getMes
     renderProgressHeader(status, messages),
     ...status.issues.map((issue) => renderIssueLine(issue, messages)),
   ].join('\n');
-}
-
-type SpecGroup = 'in-progress' | 'not-started' | 'done' | 'not-broken-down';
-
-function classify(s: SpecStatus): SpecGroup {
-  if (!s.brokenDown) {
-    return 'not-broken-down';
-  }
-  if (s.total > 0 && s.done === s.total) {
-    return 'done';
-  }
-  if (s.inProgress > 0 || s.done > 0) {
-    return 'in-progress';
-  }
-  return 'not-started';
 }
 
 function nextActionable(s: SpecStatus): ResolvedIssue | undefined {
@@ -82,13 +68,7 @@ export function renderSpecList(statuses: SpecStatus[], messages: Messages = getM
     const group = classify(s);
     groups.set(group, [...(groups.get(group) ?? []), s]);
   }
-  const active = (groups.get('in-progress') ?? []).slice().sort((a, b) => {
-    if ((a.inProgress > 0) !== (b.inProgress > 0)) {
-      return a.inProgress > 0 ? -1 : 1;
-    }
-    const pct = b.done / b.total - a.done / a.total;
-    return pct !== 0 ? pct : a.slug.localeCompare(b.slug);
-  });
+  const active = (groups.get('in-progress') ?? []).slice().sort(compareActiveSpecs);
 
   const sections: string[] = [];
   if (active.length > 0) {
@@ -126,6 +106,15 @@ export function makeStatusCommand(): Command {
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
       const messages = getMessages();
       const root = await resolveSpecsRoot(process.cwd());
+
+      // Interactive, real-time TUI when attached to a terminal; the one-shot
+      // path stays for --json and non-TTY (pipes, CI, tests).
+      if (!json && process.stdout.isTTY) {
+        const { runStatusTui } = await import('../tui/render.js');
+        await runStatusTui(root, slug);
+        return;
+      }
+
       if (slug !== undefined) {
         const status = await readSpecStatus(root, slug);
         printResult(status, renderSpecDetail(status, messages), json);

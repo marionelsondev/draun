@@ -11,8 +11,8 @@ let dir: string;
 let home: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-tools-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-tools-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-tools-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-tools-home-'));
 });
 
 afterEach(async () => {
@@ -21,26 +21,19 @@ afterEach(async () => {
 });
 
 async function writeGlobalConfig(content: string): Promise<void> {
-  await mkdir(join(home, '.midas'), { recursive: true });
+  await mkdir(join(home, '.draun'), { recursive: true });
   await writeFile(globalConfigPath(home), content, 'utf8');
 }
 
 describe('TOOL_REGISTRY', () => {
   it('covers exactly the supported tool ids', () => {
     const ids = TOOL_REGISTRY.map((tool) => tool.id);
-    expect(ids).toEqual(['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'gemini']);
+    expect(ids).toEqual(['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'opencode']);
   });
 
   it('has unique ids', () => {
     const ids = TOOL_REGISTRY.map((tool) => tool.id);
     expect(new Set(ids).size).toBe(ids.length);
-  });
-
-  it('formats claude and cursor command paths per their conventions', () => {
-    const claude = TOOL_REGISTRY.find((tool) => tool.id === 'claude');
-    const cursor = TOOL_REGISTRY.find((tool) => tool.id === 'cursor');
-    expect(claude?.commands?.pathFor('spec')).toBe('.claude/commands/midas/spec.md');
-    expect(cursor?.commands?.pathFor('spec')).toBe('.cursor/commands/midas-spec.md');
   });
 });
 
@@ -82,6 +75,22 @@ describe('detectTools', () => {
     expect(detected.map((tool) => tool.id)).toEqual(['antigravity']);
   });
 
+  it('detects opencode via the .opencode/ directory', async () => {
+    await mkdir(join(dir, '.opencode'), { recursive: true });
+
+    const detected = await detectTools(dir);
+
+    expect(detected.map((tool) => tool.id)).toEqual(['opencode']);
+  });
+
+  it('detects opencode via the opencode.json marker without .opencode', async () => {
+    await writeFile(join(dir, 'opencode.json'), '{}\n', 'utf8');
+
+    const detected = await detectTools(dir);
+
+    expect(detected.map((tool) => tool.id)).toEqual(['opencode']);
+  });
+
   it('does not detect antigravity in a repo with only .claude/', async () => {
     await mkdir(join(dir, '.claude'), { recursive: true });
 
@@ -102,8 +111,8 @@ describe('resolveToolsFlag', () => {
   });
 
   it('tolerates whitespace around ids', () => {
-    const tools = resolveToolsFlag(' claude , gemini ');
-    expect(tools.map((tool) => tool.id)).toEqual(['claude', 'gemini']);
+    const tools = resolveToolsFlag(' claude , cursor ');
+    expect(tools.map((tool) => tool.id)).toEqual(['claude', 'cursor']);
   });
 
   it('maps all to exactly the six supported ids', () => {
@@ -114,7 +123,7 @@ describe('resolveToolsFlag', () => {
       'windsurf',
       'codex',
       'antigravity',
-      'gemini',
+      'opencode',
     ]);
   });
 
@@ -128,10 +137,9 @@ describe('resolveToolsFlag', () => {
     expect(caught).toBeInstanceOf(CliError);
     expect((caught as CliError).exitCode).toBe(2);
     expect((caught as CliError).message).toContain("unknown tool 'aider'");
-    for (const id of ['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'gemini']) {
+    for (const id of ['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'opencode']) {
       expect((caught as CliError).message).toContain(id);
     }
-    expect((caught as CliError).message).not.toContain('opencode');
   });
 
   it('throws CliError exit 2 naming the unknown id and listing valid ids', () => {
@@ -152,8 +160,8 @@ describe('resolveToolsFlag', () => {
 
 describe('loadConfig tools key', () => {
   beforeEach(async () => {
-    // loadConfig requires an initialized project (a .midas/ dir).
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    // loadConfig requires an initialized project (a .draun/ dir).
+    await mkdir(join(dir, '.draun'), { recursive: true });
   });
 
   it('parses tools as a string array from the global config', async () => {
@@ -165,7 +173,7 @@ describe('loadConfig tools key', () => {
   });
 
   it('defaults tools to [] when the key is missing', async () => {
-    await writeGlobalConfig('context: hello\n');
+    await writeGlobalConfig('foo: bar\n');
 
     const config = await loadConfig(dir, home);
 

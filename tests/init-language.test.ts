@@ -21,13 +21,13 @@ let home: string;
 let originalIsTTY: boolean | undefined;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-init-language-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-init-language-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-init-language-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-init-language-home-'));
   mocked.home = home;
   // Seed the global config so init exercises the per-repo flow, not the
   // first-run global setup (covered by init-global-setup.test.ts).
-  await mkdir(join(home, '.midas'), { recursive: true });
-  await writeFile(join(home, '.midas', 'config.yaml'), 'tools: []\nlanguage: en-US\n', 'utf8');
+  await mkdir(join(home, '.draun'), { recursive: true });
+  await writeFile(join(home, '.draun', 'config.yaml'), 'tools: []\nlanguage: en-US\n', 'utf8');
   vi.spyOn(process, 'cwd').mockReturnValue(dir);
   originalIsTTY = process.stdin.isTTY;
   process.stdin.isTTY = false;
@@ -71,7 +71,7 @@ interface InitJson {
   language: string;
 }
 
-describe('midas init language', () => {
+describe('draun init language', () => {
   it('fresh init reports the default en-US without writing language anywhere', async () => {
     const { code, out } = await run(['init', '--tools', 'claude', '--json']);
     expect(code).toBe(0);
@@ -80,18 +80,18 @@ describe('midas init language', () => {
     expect(payload.language).toBe('en-US');
 
     const raw = await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8');
-    expect(raw).toContain('# MidasSpec project configuration');
+    expect(raw).toContain('# Draun project configuration');
     expect(raw).not.toMatch(/^language:/m);
     // The global config in the repo's home stays untouched by init's repo phase.
-    const globalRaw = await readFile(join(home, '.midas', 'config.yaml'), 'utf8');
+    const globalRaw = await readFile(join(home, '.draun', 'config.yaml'), 'utf8');
     expect(globalRaw).toBe('tools: []\nlanguage: en-US\n');
     // The old root-level template is never created.
-    await expect(readFile(join(dir, 'midas.config.yaml'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(dir, 'draun.config.yaml'), 'utf8')).rejects.toThrow();
   });
 
   it('rerun reports the project-layer pt-BR without copying it anywhere', async () => {
     // The language lives in the layered config (project layer, manual edit).
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    await mkdir(join(dir, '.draun'), { recursive: true });
     await writeFile(join(dir, PROJECT_CONFIG_RELPATH), 'language: pt-BR\n', 'utf8');
 
     const { code, out } = await run(['init', '--force', '--json']);
@@ -103,12 +103,12 @@ describe('midas init language', () => {
     // The override is read, never rewritten or copied.
     const layered = await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8');
     expect(layered).toBe('language: pt-BR\n');
-    await expect(readFile(join(dir, 'midas.config.yaml'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(dir, 'draun.config.yaml'), 'utf8')).rejects.toThrow();
   });
 
   it('fails with exit 1 naming an unsupported language from the project layer', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
-    await writeFile(join(dir, '.midas', 'config.yaml'), 'language: fr-FR\n', 'utf8');
+    await mkdir(join(dir, '.draun'), { recursive: true });
+    await writeFile(join(dir, '.draun', 'config.yaml'), 'language: fr-FR\n', 'utf8');
 
     const { code, err } = await run(['init', '--force', '--json']);
     expect(code).toBe(1);
@@ -118,8 +118,8 @@ describe('midas init language', () => {
   });
 
   it('human output shows the language resolved from the global layer', async () => {
-    await mkdir(join(home, '.midas'), { recursive: true });
-    await writeFile(join(home, '.midas', 'config.yaml'), 'language: pt-BR\n', 'utf8');
+    await mkdir(join(home, '.draun'), { recursive: true });
+    await writeFile(join(home, '.draun', 'config.yaml'), 'language: pt-BR\n', 'utf8');
 
     const { code, out } = await run(['init', '--tools', 'claude']);
     expect(code).toBe(0);

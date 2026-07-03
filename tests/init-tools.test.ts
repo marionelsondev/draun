@@ -23,13 +23,13 @@ let home: string;
 let originalIsTTY: boolean | undefined;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-init-tools-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-init-tools-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-init-tools-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-init-tools-home-'));
   mocked.home = home;
   // Seed the global config so init exercises the per-repo flow, not the
   // first-run global setup (covered by init-global-setup.test.ts).
-  await mkdir(join(home, '.midas'), { recursive: true });
-  await writeFile(join(home, '.midas', 'config.yaml'), 'tools: []\nlanguage: en-US\n', 'utf8');
+  await mkdir(join(home, '.draun'), { recursive: true });
+  await writeFile(join(home, '.draun', 'config.yaml'), 'tools: []\nlanguage: en-US\n', 'utf8');
   vi.spyOn(process, 'cwd').mockReturnValue(dir);
   originalIsTTY = process.stdin.isTTY;
   process.stdin.isTTY = false;
@@ -81,13 +81,12 @@ interface InitJson {
   tools: string[];
   generated: {
     agents: { path: string; action: string };
-    commands: { byTool: { tool: string; files: string[] }[]; skipped: string[] };
     skills: { byTool: { tool: string; files: string[] }[]; skipped: string[] };
   };
 }
 
-describe('midas init --tools', () => {
-  it('generates all three layers and reports the selection without writing it to the repo', async () => {
+describe('draun init --tools', () => {
+  it('generates both layers and reports the selection without writing it to the repo', async () => {
     const { code, out } = await run(['init', '--tools', 'claude,cursor', '--json']);
     expect(code).toBe(0);
 
@@ -98,38 +97,30 @@ describe('midas init --tools', () => {
     // AGENTS.md layer
     expect(payload.generated.agents).toEqual({ path: 'AGENTS.md', action: 'created' });
     const agents = await readFile(join(dir, 'AGENTS.md'), 'utf8');
-    expect(agents).toContain('<!-- midas:begin -->');
-    expect(agents).toContain('<!-- midas:end -->');
+    expect(agents).toContain('<!-- draun:begin -->');
+    expect(agents).toContain('<!-- draun:end -->');
 
-    // Commands layer, grouped by tool — written under the global home, never the repo
-    expect(payload.generated.commands.byTool.map((entry) => entry.tool)).toEqual([
-      'claude',
-      'cursor',
-    ]);
-    expect(payload.generated.commands.byTool[0].files).toContain(
-      join(home, '.claude', 'commands', 'midas', 'spec.md')
-    );
-    expect(payload.generated.commands.byTool[1].files).toContain(
-      join(home, '.cursor', 'commands', 'midas-spec.md')
-    );
-    expect(await exists(join(home, '.claude', 'commands', 'midas', 'implement.md'))).toBe(true);
-    expect(await exists(join(home, '.cursor', 'commands', 'midas-archive.md'))).toBe(true);
+    // Nothing is written into the repo — global tool folders only.
     expect(await exists(join(dir, '.claude'))).toBe(false);
     expect(await exists(join(dir, '.cursor'))).toBe(false);
 
-    // Skills layer: claude only, cursor reported as skipped
-    expect(payload.generated.skills.byTool.map((entry) => entry.tool)).toEqual(['claude']);
-    expect(payload.generated.skills.skipped).toContain('cursor');
-    expect(await exists(join(home, '.claude', 'skills', 'midas-spec', 'SKILL.md'))).toBe(true);
+    // Skills layer: both claude and cursor have a global skills destination
+    expect(payload.generated.skills.byTool.map((entry) => entry.tool)).toEqual([
+      'claude',
+      'cursor',
+    ]);
+    expect(payload.generated.skills.skipped).not.toContain('cursor');
+    expect(await exists(join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'))).toBe(true);
+    expect(await exists(join(home, '.cursor', 'skills', 'draun-spec', 'SKILL.md'))).toBe(true);
 
-    // tools live only in the global config: no midas.config.yaml is created
+    // tools live only in the global config: no draun.config.yaml is created
     // and the project config gains no tools key.
-    expect(await exists(join(dir, 'midas.config.yaml'))).toBe(false);
-    const config = load(await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8')) as Record<
-      string,
-      unknown
-    >;
-    expect(config).not.toHaveProperty('tools');
+    expect(await exists(join(dir, 'draun.config.yaml'))).toBe(false);
+    const config = load(await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8')) as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    expect(config ?? {}).not.toHaveProperty('tools');
   });
 
   it('--tools all selects exactly the six supported tools', async () => {
@@ -143,11 +134,11 @@ describe('midas init --tools', () => {
       'windsurf',
       'codex',
       'antigravity',
-      'gemini',
+      'opencode',
     ]);
   });
 
-  it('--tools antigravity installs the five skills and workflows', async () => {
+  it('--tools antigravity installs the five skills', async () => {
     const { code, out } = await run(['init', '--tools', 'antigravity', '--json']);
     expect(code).toBe(0);
 
@@ -157,54 +148,19 @@ describe('midas init --tools', () => {
     const skillsRoot = join(home, '.gemini', 'antigravity', 'skills');
     const entry = payload.generated.skills.byTool.find((e) => e.tool === 'antigravity');
     expect(entry?.files).toEqual([
-      join(skillsRoot, 'midas-spec', 'SKILL.md'),
-      join(skillsRoot, 'midas-analyze', 'SKILL.md'),
-      join(skillsRoot, 'midas-break', 'SKILL.md'),
-      join(skillsRoot, 'midas-implement', 'SKILL.md'),
-      join(skillsRoot, 'midas-archive', 'SKILL.md'),
+      join(skillsRoot, 'draun-spec', 'SKILL.md'),
+      join(skillsRoot, 'draun-analyze', 'SKILL.md'),
+      join(skillsRoot, 'draun-break', 'SKILL.md'),
+      join(skillsRoot, 'draun-implement', 'SKILL.md'),
+      join(skillsRoot, 'draun-archive', 'SKILL.md'),
     ]);
     for (const file of entry?.files ?? []) {
       expect(await exists(file)).toBe(true);
     }
 
-    // Workflows land in the commands layer under global_workflows.
-    expect(payload.generated.commands.skipped).not.toContain('antigravity');
-    const workflowsDir = join(home, '.gemini', 'antigravity', 'global_workflows');
-    const commandsEntry = payload.generated.commands.byTool.find((e) => e.tool === 'antigravity');
-    expect(commandsEntry?.files).toEqual([
-      join(workflowsDir, 'midas-spec.md'),
-      join(workflowsDir, 'midas-analyze.md'),
-      join(workflowsDir, 'midas-break.md'),
-      join(workflowsDir, 'midas-implement.md'),
-      join(workflowsDir, 'midas-archive.md'),
-    ]);
-    expect(await exists(join(workflowsDir, 'midas-spec.md'))).toBe(true);
-
-    // Nothing is written into the project beyond AGENTS.md and .midas/.
+    // Nothing is written into the project beyond AGENTS.md and .draun/.
     expect(await exists(join(dir, '.agents'))).toBe(false);
     expect(await exists(join(dir, '.gemini'))).toBe(false);
-  });
-
-  it('--tools gemini installs the five TOML commands and skips skills', async () => {
-    const { code, out } = await run(['init', '--tools', 'gemini', '--json']);
-    expect(code).toBe(0);
-
-    const payload = JSON.parse(out) as InitJson;
-    expect(payload.tools).toEqual(['gemini']);
-
-    const entry = payload.generated.commands.byTool.find((e) => e.tool === 'gemini');
-    expect(entry?.files).toEqual([
-      join(home, '.gemini', 'commands', 'midas', 'spec.toml'),
-      join(home, '.gemini', 'commands', 'midas', 'analyze.toml'),
-      join(home, '.gemini', 'commands', 'midas', 'break.toml'),
-      join(home, '.gemini', 'commands', 'midas', 'implement.toml'),
-      join(home, '.gemini', 'commands', 'midas', 'archive.toml'),
-    ]);
-    expect(payload.generated.commands.skipped).not.toContain('gemini');
-    expect(payload.generated.skills.skipped).toContain('gemini');
-
-    const spec = await readFile(join(home, '.gemini', 'commands', 'midas', 'spec.toml'), 'utf8');
-    expect(spec).toContain('{{args}}');
   });
 
   it('rejects the removed aider id with exit 2', async () => {
@@ -223,23 +179,23 @@ describe('midas init --tools', () => {
     expect(parsed.error.message).toContain('claude');
   });
 
-  it('re-running refreshes generated files without writing midas.config.yaml', async () => {
+  it('re-running refreshes generated files without writing draun.config.yaml', async () => {
     await run(['init', '--tools', 'claude', '--json']);
-    await rm(join(home, '.claude', 'commands', 'midas', 'spec.md'));
+    await rm(join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'));
 
     const { code, out } = await run(['init', '--tools', 'claude', '--json']);
     expect(code).toBe(0);
     const payload = JSON.parse(out) as InitJson;
     expect(payload.initialized).toBe(false);
-    expect(await exists(join(home, '.claude', 'commands', 'midas', 'spec.md'))).toBe(true);
-    expect(await exists(join(dir, 'midas.config.yaml'))).toBe(false);
+    expect(await exists(join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'))).toBe(true);
+    expect(await exists(join(dir, 'draun.config.yaml'))).toBe(false);
   });
 });
 
-describe('midas init --force / non-TTY', () => {
+describe('draun init --force / non-TTY', () => {
   it('--force uses the tools from the global config', async () => {
     await writeFile(
-      join(home, '.midas', 'config.yaml'),
+      join(home, '.draun', 'config.yaml'),
       'tools:\n  - claude\nlanguage: en-US\n',
       'utf8'
     );
@@ -252,28 +208,28 @@ describe('midas init --force / non-TTY', () => {
 
   it('--force keeps the global selection and preserves the project config bytes', async () => {
     await writeFile(
-      join(home, '.midas', 'config.yaml'),
+      join(home, '.draun', 'config.yaml'),
       'tools:\n  - cursor\nlanguage: en-US\n',
       'utf8'
     );
-    await mkdir(join(dir, '.midas'), { recursive: true });
-    const projectConfig = 'context: hello\n';
+    await mkdir(join(dir, '.draun'), { recursive: true });
+    const projectConfig = 'foo: bar\n';
     await writeFile(join(dir, PROJECT_CONFIG_RELPATH), projectConfig, 'utf8');
 
     const { code, out } = await run(['init', '--force', '--json']);
     expect(code).toBe(0);
     const payload = JSON.parse(out) as InitJson;
     expect(payload.tools).toEqual(['cursor']);
-    expect((await stat(join(dir, '.midas', 'specs'))).isDirectory()).toBe(true);
+    expect((await stat(join(dir, '.draun', 'specs'))).isDirectory()).toBe(true);
 
     // The existing project config is preserved byte for byte: no tools key added.
     expect(await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8')).toBe(projectConfig);
-    expect(await exists(join(dir, 'midas.config.yaml'))).toBe(false);
+    expect(await exists(join(dir, 'draun.config.yaml'))).toBe(false);
   });
 
   it('non-TTY without flags uses the global tools without asking', async () => {
     await writeFile(
-      join(home, '.midas', 'config.yaml'),
+      join(home, '.draun', 'config.yaml'),
       'tools:\n  - cursor\nlanguage: en-US\n',
       'utf8'
     );
@@ -286,7 +242,7 @@ describe('midas init --force / non-TTY', () => {
 
   it('silently ignores removed ids left in the global config', async () => {
     await writeFile(
-      join(home, '.midas', 'config.yaml'),
+      join(home, '.draun', 'config.yaml'),
       'tools:\n  - claude\n  - aider\n  - zed\nlanguage: en-US\n',
       'utf8'
     );
@@ -302,12 +258,9 @@ describe('midas init --force / non-TTY', () => {
     expect(code).toBe(0);
     expect(out).toContain('Tools: claude, cursor');
     expect(out).toContain('AGENTS.md created');
-    expect(out).toContain('Slash commands:');
-    expect(out).toContain(join(home, '.claude', 'commands', 'midas', 'spec.md'));
-    expect(out).toContain(join(home, '.cursor', 'commands', 'midas-break.md'));
     expect(out).toContain('Skills:');
-    expect(out).toContain(join(home, '.claude', 'skills', 'midas-implement', 'SKILL.md'));
-    expect(out).toContain('skipped (not supported): cursor');
+    expect(out).toContain(join(home, '.claude', 'skills', 'draun-implement', 'SKILL.md'));
+    expect(out).toContain(join(home, '.cursor', 'skills', 'draun-spec', 'SKILL.md'));
   });
 });
 

@@ -28,8 +28,8 @@ export class SpecConflictError extends CliError {
 }
 
 /**
- * Specs always live at `<root>/.midas/specs`, where the project root is
- * discovered by walking up from `cwd` until a `.midas/` directory is found.
+ * Specs always live at `<root>/.draun/specs`, where the project root is
+ * discovered by walking up from `cwd` until a `.draun/` directory is found.
  * Throws the standard "project not initialized" CliError when no root exists.
  */
 export async function resolveSpecsRoot(cwd: string, homeDir = homedir()): Promise<string> {

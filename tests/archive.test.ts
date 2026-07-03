@@ -31,8 +31,8 @@ let dir: string;
 let specsRoot: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-'));
-  specsRoot = join(dir, '.midas', 'specs');
+  dir = await mkdtemp(join(tmpdir(), 'draun-'));
+  specsRoot = join(dir, '.draun', 'specs');
 });
 
 afterEach(async () => {
@@ -72,7 +72,7 @@ describe('archiveSpec', () => {
 
     const dest = join(specsRoot, 'archive', '2026-06-09-pricing-engine');
     expect(result.to).toBe(dest);
-    expect(result.relTo).toBe('.midas/specs/archive/2026-06-09-pricing-engine');
+    expect(result.relTo).toBe('.draun/specs/archive/2026-06-09-pricing-engine');
     expect(result.forced).toBe(false);
     expect(result.pendingIssues).toBe(0);
     expect(await exists(join(specsRoot, 'pricing-engine'))).toBe(false);
@@ -144,19 +144,19 @@ describe('renderArchive', () => {
       slug: 'x',
       from: '/a/x',
       to: '/a/archive/2026-06-09-x',
-      relFrom: '.midas/specs/x',
-      relTo: '.midas/specs/archive/2026-06-09-x',
+      relFrom: '.draun/specs/x',
+      relTo: '.draun/specs/archive/2026-06-09-x',
       pendingIssues: 2,
       forced: true,
     });
-    expect(text).toContain("Archived 'x' -> .midas/specs/archive/2026-06-09-x/");
+    expect(text).toContain("Archived 'x' -> .draun/specs/archive/2026-06-09-x/");
     expect(text).toContain('2 pending issues');
   });
 });
 
 describe('makeArchiveCommand', () => {
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });
@@ -189,7 +189,7 @@ describe('makeArchiveCommand', () => {
 
     const payload = JSON.parse(out) as { slug: string; to: string; relTo: string };
     expect(payload.slug).toBe('pricing-engine');
-    expect(payload.relTo).toMatch(/^\.midas\/specs\/archive\/\d{4}-\d{2}-\d{2}-pricing-engine$/);
+    expect(payload.relTo).toMatch(/^\.draun\/specs\/archive\/\d{4}-\d{2}-\d{2}-pricing-engine$/);
     expect(payload.to).toContain('pricing-engine');
   });
 

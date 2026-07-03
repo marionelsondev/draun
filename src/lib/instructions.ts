@@ -97,13 +97,13 @@ export const LANGUAGE_DIRECTIVES: Record<Language, string> = {
     'Write all prose content (titles, descriptions, behaviors) in Brazilian Portuguese (pt-BR) and converse with the user in Brazilian Portuguese. Keep structural headings and INDEX.md syntax (e.g., `## Overview`, `## All issues`, checkbox lines, `blocked by:` annotations) in English.',
 };
 
-export type MidasConfig = ResolvedConfig;
+export type DraunConfig = ResolvedConfig;
 
 function toPosix(path: string): string {
   return path.split('\\').join('/');
 }
 
-export async function loadConfig(cwd: string, homeDir = homedir()): Promise<MidasConfig> {
+export async function loadConfig(cwd: string, homeDir = homedir()): Promise<DraunConfig> {
   await requireProjectRoot(cwd, homeDir);
   return resolveConfig(cwd, homeDir);
 }
@@ -111,8 +111,6 @@ export async function loadConfig(cwd: string, homeDir = homedir()): Promise<Mida
 export interface InstructionsPayload {
   artifact: Artifact;
   template: string;
-  rules: string[];
-  context: string | null;
   language: Language;
   languageDirective: string;
   outputPath: string;
@@ -133,8 +131,6 @@ export async function getInstructions(
     return {
       artifact,
       template: SPEC_TEMPLATE,
-      rules: config.rules.spec,
-      context: config.context,
       language: config.language,
       languageDirective: LANGUAGE_DIRECTIVES[config.language],
       outputPath,
@@ -157,8 +153,6 @@ export async function getInstructions(
     return {
       artifact,
       template: ANALYSIS_TEMPLATE,
-      rules: config.rules.analyze,
-      context: config.context,
       language: config.language,
       languageDirective: LANGUAGE_DIRECTIVES[config.language],
       outputPath: specPath,
@@ -170,8 +164,6 @@ export async function getInstructions(
   return {
     artifact,
     template: ISSUE_TEMPLATE,
-    rules: config.rules.break,
-    context: config.context,
     language: config.language,
     languageDirective: LANGUAGE_DIRECTIVES[config.language],
     outputPath,

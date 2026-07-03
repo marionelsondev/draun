@@ -19,8 +19,8 @@ let dir: string;
 let home: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-instructions-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-instructions-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-instructions-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-instructions-home-'));
 });
 
 afterEach(async () => {
@@ -28,21 +28,11 @@ afterEach(async () => {
   await rm(home, { recursive: true, force: true });
 });
 
-const FULL_CONFIG = `context: |
-  Internal billing platform.
-rules:
-  spec:
-    - keep pages small
-    - name behaviors in kebab-case
-  break:
-    - one issue per behavior
-  analyze:
-    - flag behaviors without an error path
-`;
+const FULL_CONFIG = '';
 
 async function writeConfig(content: string): Promise<void> {
-  await mkdir(join(dir, '.midas'), { recursive: true });
-  await writeFile(join(dir, '.midas', 'config.yaml'), content, 'utf8');
+  await mkdir(join(dir, '.draun'), { recursive: true });
+  await writeFile(join(dir, '.draun', 'config.yaml'), content, 'utf8');
 }
 
 async function scaffoldSpec(slug: string, root = DEFAULT_SPECS_ROOT): Promise<void> {
@@ -52,20 +42,18 @@ async function scaffoldSpec(slug: string, root = DEFAULT_SPECS_ROOT): Promise<vo
 }
 
 describe('getInstructions', () => {
-  it('returns spec template, spec rules, context, and SPEC.md path', async () => {
+  it('returns spec template and SPEC.md path', async () => {
     await writeConfig(FULL_CONFIG);
 
     const payload = await getInstructions(dir, 'spec', 'pricing-engine', home);
 
     expect(payload.artifact).toBe('spec');
     expect(payload.template).toBe(SPEC_TEMPLATE);
-    expect(payload.rules).toEqual(['keep pages small', 'name behaviors in kebab-case']);
-    expect(payload.context).toContain('Internal billing platform.');
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'SPEC.md'));
-    expect(payload.relOutputPath).toBe('.midas/specs/pricing-engine/SPEC.md');
+    expect(payload.relOutputPath).toBe('.draun/specs/pricing-engine/SPEC.md');
   });
 
-  it('returns issue template, break rules, and issues/ path for break', async () => {
+  it('returns issue template and issues/ path for break', async () => {
     await writeConfig(FULL_CONFIG);
     await scaffoldSpec('pricing-engine');
 
@@ -73,13 +61,11 @@ describe('getInstructions', () => {
 
     expect(payload.artifact).toBe('break');
     expect(payload.template).toBe(ISSUE_TEMPLATE);
-    expect(payload.rules).toEqual(['one issue per behavior']);
-    expect(payload.context).toContain('Internal billing platform.');
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'issues'));
-    expect(payload.relOutputPath).toBe('.midas/specs/pricing-engine/issues');
+    expect(payload.relOutputPath).toBe('.draun/specs/pricing-engine/issues');
   });
 
-  it('returns analysis template, analyze rules, and the SPEC.md path for analyze', async () => {
+  it('returns analysis template and the SPEC.md path for analyze', async () => {
     await writeConfig(FULL_CONFIG);
     await scaffoldSpec('pricing-engine');
 
@@ -87,10 +73,8 @@ describe('getInstructions', () => {
 
     expect(payload.artifact).toBe('analyze');
     expect(payload.template).toBe(ANALYSIS_TEMPLATE);
-    expect(payload.rules).toEqual(['flag behaviors without an error path']);
-    expect(payload.context).toContain('Internal billing platform.');
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'SPEC.md'));
-    expect(payload.relOutputPath).toBe('.midas/specs/pricing-engine/SPEC.md');
+    expect(payload.relOutputPath).toBe('.draun/specs/pricing-engine/SPEC.md');
   });
 
   it('rejects with CliError exit 1 for analyze with an unknown slug', async () => {
@@ -114,32 +98,7 @@ describe('getInstructions', () => {
     const payload = await getInstructions(dir, 'spec', undefined, home);
 
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, '<slug>', 'SPEC.md'));
-    expect(payload.relOutputPath).toBe('.midas/specs/<slug>/SPEC.md');
-  });
-
-  it('has context: null (key present) when context is omitted', async () => {
-    await writeConfig('rules:\n  spec:\n    - a rule\n');
-
-    const payload = await getInstructions(dir, 'spec', undefined, home);
-
-    expect('context' in payload).toBe(true);
-    expect(payload.context).toBeNull();
-  });
-
-  it('returns rules: [] when the rules section is missing', async () => {
-    await writeConfig('context: hello\n');
-
-    const payload = await getInstructions(dir, 'spec', undefined, home);
-
-    expect(payload.rules).toEqual([]);
-  });
-
-  it('coerces a single-string rule to a one-element array', async () => {
-    await writeConfig('rules:\n  spec: only one rule\n');
-
-    const payload = await getInstructions(dir, 'spec', undefined, home);
-
-    expect(payload.rules).toEqual(['only one rule']);
+    expect(payload.relOutputPath).toBe('.draun/specs/<slug>/SPEC.md');
   });
 
   it('rejects with CliError exit 1 when config is missing', async () => {
@@ -237,33 +196,28 @@ describe('getInstructions', () => {
     const payload = await getInstructions(dir, 'break', 'pricing-engine', home);
 
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'issues'));
-    expect(payload.relOutputPath).toBe('.midas/specs/pricing-engine/issues');
+    expect(payload.relOutputPath).toBe('.draun/specs/pricing-engine/issues');
     expect(payload.relOutputPath).not.toContain('\\');
   });
 });
 
 describe('loadConfig', () => {
-  it('rejects with exit 1 when the .midas directory is absent', async () => {
+  it('rejects with exit 1 when the .draun directory is absent', async () => {
     await expect(loadConfig(dir, home)).rejects.toMatchObject({ exitCode: 1 });
   });
 
-  it('succeeds with defaults when .midas exists without a config.yaml', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+  it('succeeds with defaults when .draun exists without a config.yaml', async () => {
+    await mkdir(join(dir, '.draun'), { recursive: true });
 
     const config = await loadConfig(dir, home);
 
-    expect(config).toEqual({
-      language: 'en-US',
-      tools: [],
-      context: null,
-      rules: { spec: [], break: [], analyze: [] },
-    });
+    expect(config).toEqual({ language: 'en-US', tools: [] });
   });
 });
 
 describe('makeInstructionsCommand', () => {
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });
@@ -291,13 +245,9 @@ describe('makeInstructionsCommand', () => {
 
     const payload = JSON.parse(out) as {
       template: string;
-      rules: string[];
-      context: string | null;
       outputPath: string;
     };
     expect(payload.template).toBe(SPEC_TEMPLATE);
-    expect(payload.rules).toEqual(['keep pages small', 'name behaviors in kebab-case']);
-    expect(payload.context).toContain('Internal billing platform.');
     expect(payload.outputPath).toBe(join(dir, DEFAULT_SPECS_ROOT, '<slug>', 'SPEC.md'));
   });
 

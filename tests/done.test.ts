@@ -36,7 +36,7 @@ function issue(partial: Partial<IndexIssue> & { number: string }): IndexIssue {
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-done-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-done-'));
 });
 
 afterEach(async () => {
@@ -230,7 +230,7 @@ describe('renderToggle', () => {
       specComplete: true,
     });
     expect(out).toContain('All issues done');
-    expect(out).toContain('midas archive pricing-engine');
+    expect(out).toContain('draun archive pricing-engine');
     expect(out).not.toContain('No issues newly unblocked.');
   });
 
@@ -266,7 +266,7 @@ describe('renderToggle', () => {
 
 describe('command wiring', () => {
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });
@@ -276,7 +276,7 @@ describe('command wiring', () => {
   }
 
   async function makeSpec(): Promise<string> {
-    const specDir = join(dir, '.midas', 'specs', 'pricing-engine', 'issues');
+    const specDir = join(dir, '.draun', 'specs', 'pricing-engine', 'issues');
     await mkdir(specDir, { recursive: true });
     const indexPath = join(specDir, 'INDEX.md');
     await writeFile(indexPath, INDEX_FIXTURE, 'utf8');

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-MidasSpec — a Spec-Driven Development CLI (npm package `midasspec`, binary `midas`). It scaffolds spec folders, validates SPEC/issue markdown files, tracks issue progress, and resolves issue dependency graphs. The markdown files (`SPEC.md`, `issues/*.md`, `issues/INDEX.md`) are the single source of truth — the CLI parses and edits them, never replaces them. The full functional spec lives in `.midas/specs/midasspec-cli/SPEC.md` (this repo is itself developed with the SDD workflow it implements).
+Draun — a Spec-Driven Development CLI (npm package `draun`, binary `draun`). It scaffolds spec folders, validates SPEC/issue markdown files, tracks issue progress, and resolves issue dependency graphs. The markdown files (`SPEC.md`, `issues/*.md`, `issues/INDEX.md`) are the single source of truth — the CLI parses and edits them, never replaces them. The full functional spec lives in `.draun/specs/draun-cli/SPEC.md` (this repo is itself developed with the SDD workflow it implements).
 
 ## Commands
 
@@ -26,7 +26,7 @@ Cross-cutting conventions:
 
 - Errors: throw `CliError` (`src/lib/output.ts`) with a message and exit code; `runCli` renders it (as `{"error":{"message"}}` under `--json`) and returns the code. Exit 0 on success, non-zero on any error.
 - Output: every command supports `--json` (single structured JSON object) vs human text, via `printResult(payload, humanText, json)`.
-- Config: `midas.config.yaml` at repo root (`src/lib/init.ts`) holds optional `specsRoot` (default `.midas/specs`), `context`, and per-artifact `rules` consumed by `midas instructions`.
+- Config: `draun.config.yaml` at repo root (`src/lib/init.ts`) holds optional `specsRoot` (default `.draun/specs`), `context`, and per-artifact `rules` consumed by `draun instructions`.
 - `INDEX.md` parsing (`src/lib/index-parser.ts`) is the backbone of `status`, `issues`, `done`/`reopen`: issue lines under the `## All issues` heading are `- [x] [NN — Title](file.md) — blocked by: NN, NN` (or `none`). Done state and the dependency graph are derived entirely from these checkboxes and annotations.
 - ESM throughout: relative imports use `.js` extensions even in `.ts` files.
 

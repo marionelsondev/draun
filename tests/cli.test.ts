@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { runCli } from '../src/index.js';
 import { CliError, printResult, renderError, renderJson } from '../src/lib/output.js';
 
-// The global-setup check resolves ~/.midas/config.yaml via os.homedir();
+// The global-setup check resolves ~/.draun/config.yaml via os.homedir();
 // point the home at a temp dir so the real one never leaks in.
 const mocked = vi.hoisted(() => ({ home: '' }));
 vi.mock('node:os', async (importOriginal) => {
@@ -40,21 +40,21 @@ describe('runCli', () => {
     const cap = capture();
     const code = await runCli(['--help'], cap.io);
     expect(code).toBe(0);
-    expect(cap.out).toContain('Usage: midas');
+    expect(cap.out).toContain('Usage: draun');
   });
 
   it('no args exits 0 and prints help', async () => {
     const cap = capture();
     const code = await runCli([], cap.io);
     expect(code).toBe(0);
-    expect(cap.out).toContain('Usage: midas');
+    expect(cap.out).toContain('Usage: draun');
   });
 
   it('--version exits 0 and prints name@semver', async () => {
     const cap = capture();
     const code = await runCli(['--version'], cap.io);
     expect(code).toBe(0);
-    expect(cap.out.trim()).toMatch(/^midasspec@\d+\.\d+\.\d+$/);
+    expect(cap.out.trim()).toMatch(/^draun@\d+\.\d+\.\d+$/);
   });
 
   describe('global-setup hint', () => {
@@ -62,10 +62,10 @@ describe('runCli', () => {
     let home: string;
 
     beforeEach(async () => {
-      dir = await mkdtemp(join(tmpdir(), 'midas-cli-'));
-      home = await mkdtemp(join(tmpdir(), 'midas-cli-home-'));
+      dir = await mkdtemp(join(tmpdir(), 'draun-cli-'));
+      home = await mkdtemp(join(tmpdir(), 'draun-cli-home-'));
       mocked.home = home;
-      await mkdir(join(dir, '.midas', 'specs'), { recursive: true });
+      await mkdir(join(dir, '.draun', 'specs'), { recursive: true });
     });
 
     afterEach(async () => {
@@ -87,19 +87,19 @@ describe('runCli', () => {
       }
     }
 
-    it('points at midas init on stderr when the global config is missing', async () => {
+    it('points at draun init on stderr when the global config is missing', async () => {
       const { code, err } = await runStatus();
       expect(code).toBe(0);
-      expect(err).toContain('run `midas init`');
+      expect(err).toContain('run `draun init`');
     });
 
     it('stays quiet once the global config exists', async () => {
-      await mkdir(join(home, '.midas'), { recursive: true });
-      await writeFile(join(home, '.midas', 'config.yaml'), 'language: en-US\n', 'utf8');
+      await mkdir(join(home, '.draun'), { recursive: true });
+      await writeFile(join(home, '.draun', 'config.yaml'), 'language: en-US\n', 'utf8');
 
       const { code, err } = await runStatus();
       expect(code).toBe(0);
-      expect(err).not.toContain('midas init');
+      expect(err).not.toContain('draun init');
     });
   });
 

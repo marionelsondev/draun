@@ -25,7 +25,7 @@ export interface CliIO {
 }
 
 export function buildProgram(): Command {
-  const program = new Command('midas');
+  const program = new Command('draun');
 
   program
     .description(pkg.description)
@@ -65,18 +65,18 @@ export async function runCli(argv: string[], io?: Partial<CliIO>): Promise<numbe
   program.configureOutput({ writeOut: stdout, writeErr: stderr });
 
   // First-use orientation: every real subcommand except init points at the
-  // global setup when ~/.midas/config.yaml is missing. Suppressed under
+  // global setup when ~/.draun/config.yaml is missing. Suppressed under
   // --json, where both streams must stay machine-parseable.
   program.hook('preAction', async (_thisCommand, actionCommand) => {
     const name = actionCommand.name();
-    if (name === 'midas' || name === 'init') {
+    if (name === 'draun' || name === 'init') {
       return;
     }
     if (actionCommand.optsWithGlobals<{ json?: boolean }>().json === true) {
       return;
     }
     if (!(await globalConfigExists())) {
-      stderr(red('MidasSpec is not set up on this machine yet — run `midas init` to configure it.') + '\n');
+      stderr(red('Draun is not set up on this machine yet — run `draun init` to configure it.') + '\n');
     }
   });
 

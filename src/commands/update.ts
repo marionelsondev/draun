@@ -16,7 +16,6 @@ export function renderUpdate(payload: UpdatePayload): string {
   } else {
     lines.push(step(dim('No tools configured.')));
   }
-  renderToolFiles('Slash commands', payload.generated.commands, lines);
   renderToolFiles('Skills', payload.generated.skills, lines);
   lines.push(line());
   lines.push(footer(dim('Global integration files refreshed.')));
@@ -25,7 +24,7 @@ export function renderUpdate(payload: UpdatePayload): string {
 
 export function makeUpdateCommand(): Command {
   return new Command('update')
-    .description('Regenerate the global midas integration files from the configured tools')
+    .description('Regenerate the global draun integration files from the configured tools')
     .action(async (_opts: Record<string, never>, cmd: Command) => {
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
       const report = await runUpdate();

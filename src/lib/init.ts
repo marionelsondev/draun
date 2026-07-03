@@ -3,20 +3,13 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { AGENTS_FILENAME, writeAgentsBlock } from './agents-md.js';
 import { PROJECT_CONFIG_RELPATH, SPECS_ROOT_REL } from './config.js';
-import { generateCommands } from './commands-gen.js';
 import { generateSkills } from './skills-gen.js';
 import type { ToolDescriptor } from './tools.js';
 
-export const DEFAULT_SPECS_ROOT = '.midas/specs';
+export const DEFAULT_SPECS_ROOT = '.draun/specs';
 
-export const PROJECT_CONFIG_TEMPLATE = `# MidasSpec project configuration
-# context: |                   # project background shown to AI skills
-context:
-# rules:
-#   spec: []                   # per-artifact rules for \`midas spec\`
-#   break: []                  # per-artifact rules for \`midas break\`
-#   analyze: []                # per-artifact rules for \`midas analyze\`
-rules:
+export const PROJECT_CONFIG_TEMPLATE = `# Draun project configuration
+# language: pt-BR   # override the global language for this project
 `;
 
 export interface InitResult {
@@ -38,8 +31,8 @@ async function exists(path: string): Promise<boolean> {
 }
 
 /**
- * Create the per-repo structure at `rootDir`: the `.midas/specs/` folder and
- * a minimal `.midas/config.yaml` (only `context` and `rules`, commented).
+ * Create the per-repo structure at `rootDir`: the `.draun/specs/` folder and
+ * a minimal `.draun/config.yaml` (a commented `language` override example).
  * An existing config is preserved byte for byte; only what is missing gets
  * created, so re-running is idempotent.
  */
@@ -73,7 +66,6 @@ export interface ToolFiles {
 
 export interface GeneratedReport {
   agents: { path: string; action: 'created' | 'updated' | 'unchanged' };
-  commands: { byTool: ToolFiles[]; skipped: string[] };
   skills: { byTool: ToolFiles[]; skipped: string[] };
 }
 
@@ -84,16 +76,9 @@ export async function generateIntegrations(
   home: string = homedir()
 ): Promise<GeneratedReport> {
   const agents = await writeAgentsBlock(cwd);
-  const commands: GeneratedReport['commands'] = { byTool: [], skipped: [] };
   const skills: GeneratedReport['skills'] = { byTool: [], skipped: [] };
 
   for (const tool of tools) {
-    const commandResult = await generateCommands([tool], home);
-    if (commandResult.skipped.length > 0) {
-      commands.skipped.push(tool.id);
-    } else {
-      commands.byTool.push({ tool: tool.id, files: commandResult.written });
-    }
     const skillResult = await generateSkills([tool], home);
     if (skillResult.skipped.length > 0) {
       skills.skipped.push(tool.id);
@@ -102,5 +87,5 @@ export async function generateIntegrations(
     }
   }
 
-  return { agents: { path: AGENTS_FILENAME, action: agents.action }, commands, skills };
+  return { agents: { path: AGENTS_FILENAME, action: agents.action }, skills };
 }

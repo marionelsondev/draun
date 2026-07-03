@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { load } from 'js-yaml';
 import { runCli } from '../src/index.js';
 import { initProject, PROJECT_CONFIG_TEMPLATE } from '../src/lib/init.js';
 import { PROJECT_CONFIG_RELPATH, SPECS_ROOT_REL } from '../src/lib/config.js';
@@ -21,12 +20,12 @@ let home: string;
 let originalIsTTY: boolean | undefined;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-init-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-init-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-init-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-init-home-'));
   mocked.home = home;
   // Seed the global config so the CLI flow skips the first-run global setup.
-  await mkdir(join(home, '.midas'), { recursive: true });
-  await writeFile(join(home, '.midas', 'config.yaml'), 'tools: []\nlanguage: en-US\n', 'utf8');
+  await mkdir(join(home, '.draun'), { recursive: true });
+  await writeFile(join(home, '.draun', 'config.yaml'), 'tools: []\nlanguage: en-US\n', 'utf8');
   vi.spyOn(process, 'cwd').mockReturnValue(dir);
   originalIsTTY = process.stdin.isTTY;
   process.stdin.isTTY = false;
@@ -83,7 +82,7 @@ interface InitJson {
 }
 
 describe('initProject', () => {
-  it('creates .midas/specs and .midas/config.yaml in a fresh dir', async () => {
+  it('creates .draun/specs and .draun/config.yaml in a fresh dir', async () => {
     const result = await initProject(dir);
 
     expect(result.root).toBe(dir);
@@ -97,22 +96,19 @@ describe('initProject', () => {
     expect(await readFile(result.configPath, 'utf8')).toBe(PROJECT_CONFIG_TEMPLATE);
   });
 
-  it('writes a minimal commented template with only context and rules', async () => {
+  it('writes a minimal commented template', async () => {
     const result = await initProject(dir);
     const raw = await readFile(result.configPath, 'utf8');
 
-    expect(raw.startsWith('# MidasSpec project configuration')).toBe(true);
-    const parsed = load(raw) as Record<string, unknown>;
-    expect(parsed).toHaveProperty('context');
-    expect(parsed).toHaveProperty('rules');
-    expect(parsed).not.toHaveProperty('tools');
-    expect(parsed).not.toHaveProperty('specsRoot');
-    expect(parsed).not.toHaveProperty('language');
+    expect(raw.startsWith('# Draun project configuration')).toBe(true);
+    expect(raw).not.toContain('context');
+    expect(raw).not.toContain('rules');
+    expect(raw).toContain('language');
   });
 
-  it('never creates midas.config.yaml at the root', async () => {
+  it('never creates draun.config.yaml at the root', async () => {
     await initProject(dir);
-    expect(await exists(join(dir, 'midas.config.yaml'))).toBe(false);
+    expect(await exists(join(dir, 'draun.config.yaml'))).toBe(false);
   });
 
   it('is idempotent: second run creates nothing and keeps config bytes', async () => {
@@ -129,8 +125,8 @@ describe('initProject', () => {
   });
 
   it('preserves a user-edited config byte for byte', async () => {
-    const custom = 'context: |\n  my project\nrules:\n  spec:\n    - keep it short\n';
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    const custom = 'language: pt-BR\n';
+    await mkdir(join(dir, '.draun'), { recursive: true });
     await writeFile(join(dir, PROJECT_CONFIG_RELPATH), custom, 'utf8');
 
     const result = await initProject(dir);
@@ -140,7 +136,7 @@ describe('initProject', () => {
     expect(await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8')).toBe(custom);
   });
 
-  it('creates the missing config when .midas/specs already exists', async () => {
+  it('creates the missing config when .draun/specs already exists', async () => {
     await mkdir(join(dir, SPECS_ROOT_REL), { recursive: true });
 
     const result = await initProject(dir);
@@ -151,7 +147,7 @@ describe('initProject', () => {
   });
 });
 
-describe('midas init (command)', () => {
+describe('draun init (command)', () => {
   it('fresh repo with global config runs without prompts and reports what was created', async () => {
     const { code, out } = await run(['init', '--json']);
     expect(code).toBe(0);
@@ -165,7 +161,7 @@ describe('midas init (command)', () => {
     expect(await readFile(join(dir, PROJECT_CONFIG_RELPATH), 'utf8')).toBe(
       PROJECT_CONFIG_TEMPLATE
     );
-    expect(await exists(join(dir, 'midas.config.yaml'))).toBe(false);
+    expect(await exists(join(dir, 'draun.config.yaml'))).toBe(false);
   });
 
   it('re-running reports everything already existing and changes no files', async () => {
@@ -195,8 +191,8 @@ describe('midas init (command)', () => {
 
     const after = await readFile(join(dir, 'AGENTS.md'), 'utf8');
     expect(after).toContain('# My project notes');
-    expect(after).toContain('<!-- midas:begin -->');
-    expect(after).toContain('<!-- midas:end -->');
+    expect(after).toContain('<!-- draun:begin -->');
+    expect(after).toContain('<!-- draun:end -->');
   });
 
   it('human output reports created items on a fresh repo', async () => {

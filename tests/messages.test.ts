@@ -28,8 +28,8 @@ let dir: string;
 let home: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-messages-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-messages-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-messages-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-messages-home-'));
   mocked.home = home;
 });
 
@@ -40,10 +40,10 @@ afterEach(async () => {
 });
 
 async function writeFixture(base: string, language?: string): Promise<void> {
-  const issuesDir = join(base, '.midas', 'specs', 'demo', 'issues');
+  const issuesDir = join(base, '.draun', 'specs', 'demo', 'issues');
   await mkdir(issuesDir, { recursive: true });
   if (language !== undefined) {
-    await writeFile(join(base, '.midas', 'config.yaml'), `language: ${language}\n`, 'utf8');
+    await writeFile(join(base, '.draun', 'config.yaml'), `language: ${language}\n`, 'utf8');
   }
   await writeFile(join(issuesDir, 'INDEX.md'), INDEX_FIXTURE, 'utf8');
 }

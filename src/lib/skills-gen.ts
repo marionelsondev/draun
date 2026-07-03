@@ -14,7 +14,7 @@ export interface GenerateSkillsResult {
 export function renderSkillFile(template: WorkflowTemplate): string {
   return [
     '---',
-    `name: midas-${template.name}`,
+    `name: draun-${template.name}`,
     `description: ${template.description}`,
     '---',
     '',
@@ -38,7 +38,7 @@ export async function generateSkills(
     }
     try {
       for (const template of WORKFLOW_TEMPLATES) {
-        const absPath = join(resolved.skillsDir, `midas-${template.name}`, 'SKILL.md');
+        const absPath = join(resolved.skillsDir, `draun-${template.name}`, 'SKILL.md');
         await mkdir(dirname(absPath), { recursive: true });
         await writeFile(absPath, renderSkillFile(template), 'utf8');
         written.push(absPath);

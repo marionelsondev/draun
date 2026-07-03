@@ -27,7 +27,7 @@ export function resolveLanguage(value: unknown): Language {
 
 /**
  * The effective language resolved from the layered config
- * (project `.midas/config.yaml` > global `~/.midas/config.yaml` > default).
+ * (project `.draun/config.yaml` > global `~/.draun/config.yaml` > default).
  * Missing files, unparseable YAML, or absent keys resolve to the default;
  * an unsupported value throws a CliError.
  */

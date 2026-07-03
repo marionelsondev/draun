@@ -17,7 +17,7 @@ const INDEX_FIXTURE = `# Issues — Pricing Engine
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-root-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-root-'));
 });
 
 afterEach(async () => {
@@ -25,26 +25,26 @@ afterEach(async () => {
 });
 
 describe('findProjectRoot', () => {
-  it('finds the root when .midas is in the start directory itself', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+  it('finds the root when .draun is in the start directory itself', async () => {
+    await mkdir(join(dir, '.draun'), { recursive: true });
     expect(await findProjectRoot(dir, join(dir, 'home'))).toBe(dir);
   });
 
   it('finds the root walking up from a nested subdirectory', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    await mkdir(join(dir, '.draun'), { recursive: true });
     const nested = join(dir, 'a', 'b', 'c');
     await mkdir(nested, { recursive: true });
     expect(await findProjectRoot(nested, join(dir, 'home'))).toBe(dir);
   });
 
-  it('returns null when no ancestor contains .midas', async () => {
+  it('returns null when no ancestor contains .draun', async () => {
     expect(await findProjectRoot(dir, join(dir, 'home'))).toBeNull();
   });
 
   it('does not treat the home directory as a project root', async () => {
     const home = join(dir, 'home');
     const sub = join(home, 'sub');
-    await mkdir(join(home, '.midas'), { recursive: true });
+    await mkdir(join(home, '.draun'), { recursive: true });
     await mkdir(sub, { recursive: true });
     expect(await findProjectRoot(sub, home)).toBeNull();
   });
@@ -52,7 +52,7 @@ describe('findProjectRoot', () => {
 
 describe('requireProjectRoot', () => {
   it('returns the discovered root', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    await mkdir(join(dir, '.draun'), { recursive: true });
     expect(await requireProjectRoot(dir, join(dir, 'home'))).toBe(dir);
   });
 
@@ -65,7 +65,7 @@ describe('requireProjectRoot', () => {
     }
     expect(caught).toBeInstanceOf(CliError);
     expect((caught as CliError).exitCode).toBe(1);
-    expect((caught as CliError).message).toBe('project not initialized — run midas init');
+    expect((caught as CliError).message).toBe('project not initialized — run draun init');
   });
 });
 
@@ -92,8 +92,8 @@ describe('runCli root discovery', () => {
     cwdSpy.mockRestore();
   });
 
-  it('status --json works from a subdirectory of a project whose .midas has no config.yaml', async () => {
-    const issuesDir = join(dir, '.midas', 'specs', 'pricing-engine', 'issues');
+  it('status --json works from a subdirectory of a project whose .draun has no config.yaml', async () => {
+    const issuesDir = join(dir, '.draun', 'specs', 'pricing-engine', 'issues');
     await mkdir(issuesDir, { recursive: true });
     await writeFile(join(issuesDir, 'INDEX.md'), INDEX_FIXTURE, 'utf8');
     const sub = join(dir, 'packages', 'app');
@@ -125,7 +125,7 @@ describe('runCli root discovery', () => {
 
     expect(code).toBe(1);
     expect(JSON.parse(errOut)).toEqual({
-      error: { message: 'project not initialized — run midas init' },
+      error: { message: 'project not initialized — run draun init' },
     });
   });
 
@@ -136,7 +136,7 @@ describe('runCli root discovery', () => {
 
     expect(code).toBe(1);
     expect(JSON.parse(errOut)).toEqual({
-      error: { message: 'project not initialized — run midas init' },
+      error: { message: 'project not initialized — run draun init' },
     });
   });
 });

@@ -30,10 +30,10 @@ export function renderGlobalConfig(toolIds: string[], language: Language): strin
     toolIds.length === 0
       ? 'tools: []\n'
       : `tools:\n${toolIds.map((id) => `  - ${id}`).join('\n')}\n`;
-  return `# MidasSpec global configuration\n${tools}language: ${language}\n`;
+  return `# Draun global configuration\n${tools}language: ${language}\n`;
 }
 
-/** Write `~/.midas/config.yaml` (creating `~/.midas`), returning its path. */
+/** Write `~/.draun/config.yaml` (creating `~/.draun`), returning its path. */
 export async function writeGlobalConfig(
   toolIds: string[],
   language: Language,
@@ -71,7 +71,7 @@ export async function runGlobalSetup(
 ): Promise<GlobalSetupResult> {
   if (!opts.interactive && (opts.toolsFlag === undefined || opts.languageFlag === undefined)) {
     throw new CliError(
-      'global setup required — ~/.midas/config.yaml not found; run `midas init` in a terminal or pass --tools <ids> and --language <en-US|pt-BR>',
+      'global setup required — ~/.draun/config.yaml not found; run `draun init` in a terminal or pass --tools <ids> and --language <en-US|pt-BR>',
       2
     );
   }
@@ -80,7 +80,7 @@ export async function runGlobalSetup(
   let shownBanner = false;
   const showBanner = (): void => {
     if (!shownBanner) {
-      io.output.write(`${banner('Spec-Driven Development')}\n`);
+      io.output.write(`${banner()}\n`);
       shownBanner = true;
     }
   };

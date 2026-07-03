@@ -46,7 +46,7 @@ const EN: Messages = {
     'spec-not-found': (p) => `spec '${p.slug}' not found: missing ${p.path}`,
     'not-broken-down': (p) => `spec '${p.slug}' has not been broken down yet`,
     'issue-not-found': (p) => `issue '${p.number}' not found in INDEX.md`,
-    'start-done-issue': (p) => `issue '${p.number}' is already done — run midas reopen first`,
+    'start-done-issue': (p) => `issue '${p.number}' is already done — run draun reopen first`,
     'validation-failed': (p) => `validation failed: ${p.errors} error(s)`,
   },
   status: {
@@ -72,7 +72,7 @@ const EN: Messages = {
     alreadyStarted: (label) => `${label} is already in progress.`,
     newlyReady: (label) => `Newly ready: ${label}`,
     noneUnblocked: 'No issues newly unblocked.',
-    specComplete: (slug) => `All issues done — run midas archive ${slug} (or /midas:archive) to close the spec.`,
+    specComplete: (slug) => `All issues done — run draun archive ${slug} (or the draun-archive skill) to close the spec.`,
   },
   validate: {
     severity: (s) => s,

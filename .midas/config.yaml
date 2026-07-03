@@ -1,7 +1,0 @@
-# MidasSpec project configuration
-# context: |                   # project background shown to AI skills
-context:
-# rules:
-#   spec: []                   # per-artifact rules for `midas spec`
-#   break: []                  # per-artifact rules for `midas break`
-rules:

@@ -12,7 +12,7 @@ import {
   writeGlobalConfig,
 } from '../src/lib/global-setup.js';
 
-// The global setup reads/writes ~/.midas/config.yaml and the global tool
+// The global setup reads/writes ~/.draun/config.yaml and the global tool
 // folders via os.homedir(); point the home at a temp dir per test.
 const mocked = vi.hoisted(() => ({ home: '' }));
 vi.mock('node:os', async (importOriginal) => {
@@ -26,8 +26,8 @@ let home: string;
 let originalIsTTY: boolean | undefined;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-global-setup-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-global-setup-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-global-setup-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-global-setup-home-'));
   mocked.home = home;
   vi.spyOn(process, 'cwd').mockReturnValue(dir);
   originalIsTTY = process.stdin.isTTY;
@@ -75,7 +75,7 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-const globalConfig = () => join(home, '.midas', 'config.yaml');
+const globalConfig = () => join(home, '.draun', 'config.yaml');
 
 interface InitJson {
   initialized: boolean;
@@ -83,12 +83,11 @@ interface InitJson {
   language: string;
   globalSetup: { performed: boolean; configPath: string | null };
   generated: {
-    commands: { byTool: { tool: string; files: string[] }[]; skipped: string[] };
     skills: { byTool: { tool: string; files: string[] }[]; skipped: string[] };
   };
 }
 
-describe('midas init — first-run global setup', () => {
+describe('draun init — first-run global setup', () => {
   it('clean home + flags creates the global config and global integrations', async () => {
     const { code, out } = await run([
       'init',
@@ -105,16 +104,15 @@ describe('midas init — first-run global setup', () => {
     expect(config.language).toBe('pt-BR');
 
     // Global integrations live under the home, never inside the repo.
-    expect(await exists(join(home, '.claude', 'skills', 'midas-spec', 'SKILL.md'))).toBe(true);
-    expect(await exists(join(home, '.claude', 'commands', 'midas', 'spec.md'))).toBe(true);
+    expect(await exists(join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'))).toBe(true);
     expect(await exists(join(dir, '.claude'))).toBe(false);
 
     const payload = JSON.parse(out) as InitJson;
     expect(payload.language).toBe('pt-BR');
     expect(payload.globalSetup.performed).toBe(true);
     expect(payload.globalSetup.configPath).toBe(globalConfig());
-    expect(payload.generated.commands.byTool[0].files).toContain(
-      join(home, '.claude', 'commands', 'midas', 'spec.md')
+    expect(payload.generated.skills.byTool[0].files).toContain(
+      join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md')
     );
   });
 
@@ -198,13 +196,13 @@ describe('runGlobalSetup — interactive', () => {
 describe('global config helpers', () => {
   it('renderGlobalConfig serializes tools and language', () => {
     expect(renderGlobalConfig(['claude', 'cursor'], 'pt-BR')).toBe(
-      '# MidasSpec global configuration\ntools:\n  - claude\n  - cursor\nlanguage: pt-BR\n'
+      '# Draun global configuration\ntools:\n  - claude\n  - cursor\nlanguage: pt-BR\n'
     );
   });
 
   it('renderGlobalConfig writes an empty selection as tools: []', () => {
     expect(renderGlobalConfig([], 'en-US')).toBe(
-      '# MidasSpec global configuration\ntools: []\nlanguage: en-US\n'
+      '# Draun global configuration\ntools: []\nlanguage: en-US\n'
     );
   });
 

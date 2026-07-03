@@ -1,6 +1,6 @@
 {
-  "name": "midasspec",
-  "version": "0.4.0",
+  "name": "draun",
+  "version": "0.5.0",
   "description": "Spec-Driven Development CLI: scaffold specs, validate artifacts, and track issue progress from markdown.",
   "keywords": [
     "spec-driven-development",
@@ -18,15 +18,15 @@
   "author": "Mário Nelson",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marionelsondev/midasspec.git"
+    "url": "git+https://github.com/marionelsondev/draun.git"
   },
-  "homepage": "https://github.com/marionelsondev/midasspec#readme",
+  "homepage": "https://github.com/marionelsondev/draun#readme",
   "bugs": {
-    "url": "https://github.com/marionelsondev/midasspec/issues"
+    "url": "https://github.com/marionelsondev/draun/issues"
   },
   "type": "module",
   "bin": {
-    "midas": "dist/index.js"
+    "draun": "dist/index.js"
   },
   "files": [
     "dist"
@@ -43,12 +43,16 @@
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
     "commander": "^12.1.0",
+    "ink": "^5.2.1",
     "js-yaml": "^4.1.0",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "react": "^18.3.1"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
+    "@types/react": "^18.3.31",
+    "ink-testing-library": "^4.0.0",
     "smol-toml": "^1.6.1",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",

@@ -109,7 +109,7 @@ export async function setIssueState(
   }
 
   if (state === 'in-progress' && target.done) {
-    throw new CliError(`issue '${number}' is already done — run midas reopen first`, 1, {
+    throw new CliError(`issue '${number}' is already done — run draun reopen first`, 1, {
       key: 'start-done-issue',
       params: { number },
     });

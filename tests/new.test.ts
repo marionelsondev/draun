@@ -11,7 +11,7 @@ import { makeNewCommand } from '../src/commands/new.js';
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-new-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-new-'));
 });
 
 afterEach(async () => {
@@ -44,12 +44,12 @@ describe('slugify', () => {
 });
 
 describe('resolveSpecsRoot', () => {
-  it('returns <root>/.midas/specs when .midas is present', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+  it('returns <root>/.draun/specs when .draun is present', async () => {
+    await mkdir(join(dir, '.draun'), { recursive: true });
     expect(await resolveSpecsRoot(dir)).toBe(join(dir, DEFAULT_SPECS_ROOT));
   });
 
-  it('rejects with the project-not-initialized CliError when no .midas exists', async () => {
+  it('rejects with the project-not-initialized CliError when no .draun exists', async () => {
     const home = join(dir, 'home');
     await mkdir(home, { recursive: true });
     let caught: unknown;
@@ -60,35 +60,35 @@ describe('resolveSpecsRoot', () => {
     }
     expect(caught).toBeInstanceOf(CliError);
     expect((caught as CliError).exitCode).toBe(1);
-    expect((caught as CliError).message).toBe('project not initialized — run midas init');
+    expect((caught as CliError).message).toBe('project not initialized — run draun init');
   });
 
   it('falls back to default on malformed YAML', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
-    await writeFile(join(dir, '.midas', 'config.yaml'), 'specsRoot: [unclosed\n  ::bad', 'utf8');
+    await mkdir(join(dir, '.draun'), { recursive: true });
+    await writeFile(join(dir, '.draun', 'config.yaml'), 'specsRoot: [unclosed\n  ::bad', 'utf8');
     expect(await resolveSpecsRoot(dir)).toBe(join(dir, DEFAULT_SPECS_ROOT));
   });
 
   it('ignores a specsRoot key in the project config', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
-    await writeFile(join(dir, '.midas', 'config.yaml'), 'specsRoot: other/dir\n', 'utf8');
+    await mkdir(join(dir, '.draun'), { recursive: true });
+    await writeFile(join(dir, '.draun', 'config.yaml'), 'specsRoot: other/dir\n', 'utf8');
     expect(await resolveSpecsRoot(dir)).toBe(join(dir, DEFAULT_SPECS_ROOT));
   });
 });
 
 describe('newSpec', () => {
   beforeEach(async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    await mkdir(join(dir, '.draun'), { recursive: true });
   });
 
-  it('creates .midas/specs/pricing-engine and returns paths', async () => {
+  it('creates .draun/specs/pricing-engine and returns paths', async () => {
     const result = await newSpec(dir, 'Pricing Engine');
 
     expect(result.slug).toBe('pricing-engine');
     expect(result.dir).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine'));
     expect(result.specPath).toBe(join(dir, DEFAULT_SPECS_ROOT, 'pricing-engine', 'SPEC.md'));
-    expect(result.relDir).toBe('.midas/specs/pricing-engine');
-    expect(result.relSpecPath).toBe('.midas/specs/pricing-engine/SPEC.md');
+    expect(result.relDir).toBe('.draun/specs/pricing-engine');
+    expect(result.relSpecPath).toBe('.draun/specs/pricing-engine/SPEC.md');
     expect((await stat(result.dir)).isDirectory()).toBe(true);
   });
 
@@ -121,8 +121,8 @@ describe('newSpec', () => {
   });
 
   it('ignores a specsRoot override in the project config', async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
-    await writeFile(join(dir, '.midas', 'config.yaml'), 'specsRoot: other/dir\n', 'utf8');
+    await mkdir(join(dir, '.draun'), { recursive: true });
+    await writeFile(join(dir, '.draun', 'config.yaml'), 'specsRoot: other/dir\n', 'utf8');
 
     const result = await newSpec(dir, 'Pricing Engine');
 
@@ -138,11 +138,11 @@ describe('newSpec', () => {
 
 describe('makeNewCommand', () => {
   beforeEach(async () => {
-    await mkdir(join(dir, '.midas'), { recursive: true });
+    await mkdir(join(dir, '.draun'), { recursive: true });
   });
 
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });

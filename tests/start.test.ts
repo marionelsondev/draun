@@ -21,7 +21,7 @@ const INDEX_FIXTURE = `# Issues — Pricing Engine
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-start-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-start-'));
 });
 
 afterEach(async () => {
@@ -85,7 +85,7 @@ describe('setIssueState', () => {
     }
     expect(caught).toBeInstanceOf(CliError);
     expect((caught as CliError).exitCode).toBe(1);
-    expect((caught as CliError).message).toContain('midas reopen');
+    expect((caught as CliError).message).toContain('draun reopen');
     expect(await readFile(indexPath, 'utf8')).toBe(before);
   });
 
@@ -146,7 +146,7 @@ describe('renderStart', () => {
 
 describe('command wiring', () => {
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });
@@ -173,7 +173,7 @@ describe('command wiring', () => {
   }
 
   async function makeProjectSpec(): Promise<string> {
-    const specDir = join(dir, '.midas', 'specs', 'pricing-engine', 'issues');
+    const specDir = join(dir, '.draun', 'specs', 'pricing-engine', 'issues');
     await mkdir(specDir, { recursive: true });
     const indexPath = join(specDir, 'INDEX.md');
     await writeFile(indexPath, INDEX_FIXTURE, 'utf8');

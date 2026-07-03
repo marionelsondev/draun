@@ -6,20 +6,20 @@ import { CliError } from './output.js';
 import { resolveLanguage, type Language } from './language.js';
 
 /** Project-layer config, relative to the repo root. */
-export const PROJECT_CONFIG_RELPATH = '.midas/config.yaml';
+export const PROJECT_CONFIG_RELPATH = '.draun/config.yaml';
 
 /** Specs always live here, relative to the repo root — not configurable. */
-export const SPECS_ROOT_REL = '.midas/specs';
+export const SPECS_ROOT_REL = '.draun/specs';
 
 /** Global (per-user) config path, derived from the OS home directory. */
 export function globalConfigPath(homeDir = homedir()): string {
-  return join(homeDir, '.midas', 'config.yaml');
+  return join(homeDir, '.draun', 'config.yaml');
 }
 
 /**
  * Find the project root by walking up from `startDir` until a directory
- * containing a `.midas/` folder is found. The home directory is skipped:
- * `~/.midas` holds the global config and does not mark a project root.
+ * containing a `.draun/` folder is found. The home directory is skipped:
+ * `~/.draun` holds the global config and does not mark a project root.
  * Returns null when no root is found up to the filesystem root.
  */
 export async function findProjectRoot(
@@ -37,11 +37,11 @@ export async function findProjectRoot(
   for (;;) {
     if (!skip.has(dir)) {
       try {
-        if ((await stat(join(dir, '.midas'))).isDirectory()) {
+        if ((await stat(join(dir, '.draun'))).isDirectory()) {
           return dir;
         }
       } catch {
-        // .midas absent here: keep walking up
+        // .draun absent here: keep walking up
       }
     }
     const parent = dirname(dir);
@@ -54,12 +54,12 @@ export async function findProjectRoot(
 
 /**
  * Like findProjectRoot, but throws the standard "project not initialized"
- * CliError (exit 1) when no `.midas/` directory is found.
+ * CliError (exit 1) when no `.draun/` directory is found.
  */
 export async function requireProjectRoot(startDir: string, homeDir = homedir()): Promise<string> {
   const root = await findProjectRoot(startDir, homeDir);
   if (root === null) {
-    throw new CliError('project not initialized — run midas init', 1);
+    throw new CliError('project not initialized — run draun init', 1);
   }
   return root;
 }
@@ -90,8 +90,6 @@ async function readLayer(path: string): Promise<Record<string, unknown> | null> 
 export interface ResolvedConfig {
   language: Language;
   tools: string[];
-  context: string | null;
-  rules: { spec: string[]; break: string[]; analyze: string[] };
 }
 
 function coerceStringList(value: unknown): string[] {
@@ -104,18 +102,9 @@ function coerceStringList(value: unknown): string[] {
   return [];
 }
 
-function coerceContext(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value : null;
-}
-
-function rulesLayer(obj: Record<string, unknown>): Record<string, unknown> {
-  const rules = obj.rules;
-  return rules !== null && typeof rules === 'object' ? (rules as Record<string, unknown>) : {};
-}
-
 /**
  * Resolve the effective configuration from the two layers:
- * project (`<repo>/.midas/config.yaml`) > global (`~/.midas/config.yaml`)
+ * project (`<repo>/.draun/config.yaml`) > global (`~/.draun/config.yaml`)
  * > built-in defaults, field by field. `tools` is read from the global
  * layer only; `specsRoot` is never read from any layer.
  */
@@ -129,26 +118,8 @@ export async function resolveConfig(cwd: string, homeDir = homedir()): Promise<R
 
   const tools = coerceStringList(global.tools);
 
-  const context = coerceContext(project.context) ?? coerceContext(global.context);
-
-  const projectRules = rulesLayer(project);
-  const globalRules = rulesLayer(global);
-  const ruleField = (key: 'spec' | 'break' | 'analyze'): string[] => {
-    const fromProject = projectRules[key];
-    if (typeof fromProject === 'string' || Array.isArray(fromProject)) {
-      return coerceStringList(fromProject);
-    }
-    const fromGlobal = globalRules[key];
-    if (typeof fromGlobal === 'string' || Array.isArray(fromGlobal)) {
-      return coerceStringList(fromGlobal);
-    }
-    return [];
-  };
-
   return {
     language,
     tools,
-    context,
-    rules: { spec: ruleField('spec'), break: ruleField('break'), analyze: ruleField('analyze') },
   };
 }

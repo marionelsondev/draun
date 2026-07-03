@@ -2,11 +2,11 @@ import { release } from 'node:os';
 import pc from 'picocolors';
 
 /**
- * Gold theme for the midas CLI.
+ * Electric violet theme for the draun CLI.
  *
- * Color strategy is "committed": gold carries the brand on every interactive
- * surface, gray recedes, and nothing else competes. Truecolor gold is used
- * when the terminal supports it, falling back to ANSI yellow; picocolors
+ * Color strategy is "committed": violet carries the brand on every interactive
+ * surface, gray recedes, and nothing else competes. Truecolor violet is used
+ * when the terminal supports it, falling back to ANSI magenta; picocolors
  * already honors NO_COLOR / FORCE_COLOR / non-TTY for the base colors.
  */
 
@@ -30,17 +30,17 @@ function rgb(r: number, g: number, b: number): (text: string) => string {
     return (text) => text;
   }
   if (!truecolor) {
-    return pc.yellow;
+    return pc.magenta;
   }
-  return (text) => `[38;2;${r};${g};${b}m${text}[39m`;
+  return (text) => `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
 }
 
-/** Primary brand gold — headings, markers, anything midas-owned. */
-export const gold = rgb(230, 182, 76);
-/** Bright gold — the focused/active element. At most one per screen. */
-export const goldBright = truecolor ? rgb(255, 213, 107) : pc.yellowBright;
-/** Deep gold — filled progress, quiet brand accents. */
-export const goldDim = truecolor ? rgb(158, 122, 46) : pc.yellow;
+/** Primary brand color — electric violet; headings, markers, anything draun-owned. */
+export const gold = rgb(110, 63, 231);
+/** Bright violet — the focused/active element. At most one per screen. */
+export const goldBright = truecolor ? rgb(161, 130, 239) : pc.magentaBright;
+/** Deep violet — filled progress, quiet brand accents. */
+export const goldDim = truecolor ? rgb(75, 43, 157) : pc.magenta;
 
 export const dim = pc.isColorSupported ? pc.dim : (text: string) => text;
 export const bold = pc.isColorSupported ? pc.bold : (text: string) => text;
@@ -59,7 +59,7 @@ function u(when: string, otherwise: string): string {
   return unicode ? when : otherwise;
 }
 
-/** Structural glyphs (clack-inspired pipe layout, rendered in gold). */
+/** Structural glyphs (clack-inspired pipe layout, rendered in violet). */
 export const sym = {
   barStart: u('┌', ','),
   bar: u('│', '|'),
@@ -78,46 +78,32 @@ export const sym = {
   blockEmpty: u('░', '.'),
 };
 
-const MIDAS_LINES = [
-  '███╗   ███╗ ██╗ ██████╗   █████╗  ███████╗',
-  '████╗ ████║ ██║ ██╔══██╗ ██╔══██╗ ██╔════╝',
-  '██╔████╔██║ ██║ ██║  ██║ ███████║ ███████╗',
-  '██║╚██╔╝██║ ██║ ██║  ██║ ██╔══██║ ╚════██║',
-  '██║ ╚═╝ ██║ ██║ ██████╔╝ ██║  ██║ ███████║',
-  '╚═╝     ╚═╝ ╚═╝ ╚═════╝  ╚═╝  ╚═╝ ╚══════╝',
-];
-
-const SPEC_LINES = [
-  '███████╗ ██████╗  ███████╗  ██████╗',
-  '██╔════╝ ██╔══██╗ ██╔════╝ ██╔════╝',
-  '███████╗ ██████╔╝ █████╗   ██║     ',
-  '╚════██║ ██╔═══╝  ██╔══╝   ██║     ',
-  '███████║ ██║      ███████╗ ╚██████╗',
-  '╚══════╝ ╚═╝      ╚═╝       ╚═════╝',
+const DRAUN_LINES = [
+  '██████╗  ██████╗   █████╗  ██╗   ██╗ ███╗   ██╗',
+  '██╔══██╗ ██╔══██╗ ██╔══██╗ ██║   ██║ ████╗  ██║',
+  '██║  ██║ ██████╔╝ ███████║ ██║   ██║ ██╔██╗ ██║',
+  '██║  ██║ ██╔══██╗ ██╔══██║ ██║   ██║ ██║╚██╗██║',
+  '██████╔╝ ██║  ██║ ██║  ██║ ╚██████╔╝ ██║ ╚████║',
+  '╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝  ╚═════╝  ╚═╝  ╚═══╝',
 ];
 
 /**
- * The MIDAS SPEC wordmark in a top-to-bottom gold gradient (bright → gold →
- * deep, like light falling on metal), with a dim tagline. Both words share a
- * line on terminals at least 80 columns wide and stack otherwise. Falls back
- * to a plain bold word on terminals without unicode box-drawing support.
+ * The DRAUN wordmark in a top-to-bottom violet gradient (bright → violet →
+ * deep). Falls back to a plain bold word on terminals without unicode
+ * box-drawing support.
  */
-export function banner(tagline: string): string {
+export function banner(): string {
   if (!unicode) {
-    return `${bold(gold('M I D A S   S P E C'))}\n${dim(tagline)}\n`;
+    return `${bold(gold('D R A U N'))}\n`;
   }
   const shades = [goldBright, goldBright, gold, gold, goldDim, goldDim];
-  const sideBySide = (process.stdout.columns ?? 80) >= 80;
-  const lines = sideBySide
-    ? MIDAS_LINES.map((row, i) => `${row}  ${SPEC_LINES[i]}`)
-    : [...MIDAS_LINES, ...SPEC_LINES];
-  const art = lines.map((row, i) => shades[i % shades.length](row)).join('\n');
-  return `${art}\n${dim(tagline)}\n`;
+  const art = DRAUN_LINES.map((row, i) => shades[i % shades.length](row)).join('\n');
+  return `${art}\n`;
 }
 
-/** `┌  midas · <subtitle>` — opens every multi-section report. */
+/** `┌  draun · <subtitle>` — opens every multi-section report. */
 export function header(subtitle: string): string {
-  return `${gold(sym.barStart)}  ${bold(gold('midas'))} ${dim(sym.dot)} ${dim(subtitle)}`;
+  return `${gold(sym.barStart)}  ${bold(gold('draun'))} ${dim(sym.dot)} ${dim(subtitle)}`;
 }
 
 /** `│` continuation line (optionally with indented content). */
@@ -136,8 +122,8 @@ export function footer(text: string): string {
 }
 
 /**
- * Gold progress bar with completion percentage: `████▓▓░░░░ 33%`.
- * Done issues fill with `█` (gold), in-progress with `▓` (deep gold), the
+ * Violet progress bar with completion percentage: `████▓▓░░░░ 33%`.
+ * Done issues fill with `█` (violet), in-progress with `▓` (deep violet), the
  * remainder with `░` (dim). The percentage counts only done issues.
  */
 export function progressBar(done: number, inProgress: number, total: number, width = 14): string {

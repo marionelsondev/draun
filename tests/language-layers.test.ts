@@ -29,10 +29,10 @@ let dir: string;
 let home: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-lang-layers-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-lang-layers-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-lang-layers-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-lang-layers-home-'));
   mocked.home = home;
-  await mkdir(join(dir, '.midas'), { recursive: true });
+  await mkdir(join(dir, '.draun'), { recursive: true });
 });
 
 afterEach(async () => {
@@ -42,16 +42,16 @@ afterEach(async () => {
 });
 
 async function writeProjectConfig(content: string): Promise<void> {
-  await writeFile(join(dir, '.midas', 'config.yaml'), content, 'utf8');
+  await writeFile(join(dir, '.draun', 'config.yaml'), content, 'utf8');
 }
 
 async function writeGlobalConfig(content: string): Promise<void> {
-  await mkdir(join(home, '.midas'), { recursive: true });
+  await mkdir(join(home, '.draun'), { recursive: true });
   await writeFile(globalConfigPath(home), content, 'utf8');
 }
 
 async function writeDemoSpec(): Promise<void> {
-  const issuesDir = join(dir, '.midas', 'specs', 'demo', 'issues');
+  const issuesDir = join(dir, '.draun', 'specs', 'demo', 'issues');
   await mkdir(issuesDir, { recursive: true });
   await writeFile(join(issuesDir, 'INDEX.md'), INDEX_FIXTURE, 'utf8');
 }

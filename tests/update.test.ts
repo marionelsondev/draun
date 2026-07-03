@@ -20,8 +20,8 @@ let home: string;
 let originalIsTTY: boolean | undefined;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-update-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-update-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-update-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-update-home-'));
   mocked.home = home;
   vi.spyOn(process, 'cwd').mockReturnValue(dir);
   originalIsTTY = process.stdin.isTTY;
@@ -69,21 +69,20 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-/** Write the global config (~/.midas/config.yaml) inside the temp home. */
+/** Write the global config (~/.draun/config.yaml) inside the temp home. */
 async function writeGlobalConfig(homePath: string, yaml: string): Promise<void> {
-  await mkdir(join(homePath, '.midas'), { recursive: true });
-  await writeFile(join(homePath, '.midas', 'config.yaml'), yaml, 'utf8');
+  await mkdir(join(homePath, '.draun'), { recursive: true });
+  await writeFile(join(homePath, '.draun', 'config.yaml'), yaml, 'utf8');
 }
 
 interface UpdateJson {
   tools: string[];
   generated: {
-    commands: { byTool: { tool: string; files: string[] }[]; skipped: string[] };
     skills: { byTool: { tool: string; files: string[] }[]; skipped: string[] };
   };
 }
 
-describe('midas update', () => {
+describe('draun update', () => {
   it('regenerates the global integrations from the global tools config', async () => {
     await writeGlobalConfig(home, 'tools:\n  - claude\n  - cursor\n');
 
@@ -92,47 +91,43 @@ describe('midas update', () => {
 
     const payload = JSON.parse(out) as UpdateJson;
     expect(payload.tools).toEqual(['claude', 'cursor']);
-    expect(payload.generated.commands.byTool.map((entry) => entry.tool)).toEqual([
+    expect(payload.generated.skills.byTool.map((entry) => entry.tool)).toEqual([
       'claude',
       'cursor',
     ]);
-    expect(payload.generated.commands.byTool[0].files).toContain(
-      join(home, '.claude', 'commands', 'midas', 'spec.md')
+    expect(payload.generated.skills.byTool[0].files).toContain(
+      join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md')
     );
-    expect(payload.generated.skills.byTool.map((entry) => entry.tool)).toEqual(['claude']);
-    expect(payload.generated.skills.skipped).toContain('cursor');
+    expect(payload.generated.skills.skipped).not.toContain('cursor');
 
-    expect(await exists(join(home, '.claude', 'commands', 'midas', 'spec.md'))).toBe(true);
-    expect(await exists(join(home, '.claude', 'skills', 'midas-spec', 'SKILL.md'))).toBe(true);
+    expect(await exists(join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'))).toBe(true);
+    expect(await exists(join(home, '.cursor', 'skills', 'draun-spec', 'SKILL.md'))).toBe(true);
     // Nothing is written inside the repo — no AGENTS.md, no .claude/.
     expect(await readdir(dir)).toEqual([]);
   });
 
-  it('overwrites midas-managed files and preserves foreign files in the same folders', async () => {
+  it('overwrites draun-managed files and preserves foreign files in the same folders', async () => {
     await writeGlobalConfig(home, 'tools:\n  - claude\n');
-    const managed = join(home, '.claude', 'commands', 'midas', 'spec.md');
-    const foreignCommand = join(home, '.claude', 'commands', 'foreign.md');
+    const managed = join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md');
     const foreignSkill = join(home, '.claude', 'skills', 'meu-skill', 'SKILL.md');
-    await mkdir(join(home, '.claude', 'commands', 'midas'), { recursive: true });
+    await mkdir(join(home, '.claude', 'skills', 'draun-spec'), { recursive: true });
     await mkdir(join(home, '.claude', 'skills', 'meu-skill'), { recursive: true });
     await writeFile(managed, 'stale garbage\n', 'utf8');
-    await writeFile(foreignCommand, 'my own command\n', 'utf8');
     await writeFile(foreignSkill, 'my own skill\n', 'utf8');
 
     const { code } = await run(['update', '--json']);
     expect(code).toBe(0);
 
-    expect(await readFile(managed, 'utf8')).toContain('midas instructions');
-    expect(await readFile(foreignCommand, 'utf8')).toBe('my own command\n');
+    expect(await readFile(managed, 'utf8')).toContain('draun instructions');
     expect(await readFile(foreignSkill, 'utf8')).toBe('my own skill\n');
   });
 
-  it('fails with exit 1 pointing to midas init when the global config is missing', async () => {
+  it('fails with exit 1 pointing to draun init when the global config is missing', async () => {
     const { code, err } = await run(['update', '--json']);
     expect(code).toBe(1);
     const parsed = JSON.parse(err.trim()) as { error: { message: string } };
-    expect(parsed.error.message).toContain('midas init');
-    expect(parsed.error.message).toContain(join(home, '.midas', 'config.yaml'));
+    expect(parsed.error.message).toContain('draun init');
+    expect(parsed.error.message).toContain(join(home, '.draun', 'config.yaml'));
   });
 
   it('with no tools configured reports no tools and writes nothing', async () => {
@@ -160,36 +155,33 @@ describe('midas update', () => {
     const { code, out } = await run(['update']);
     expect(code).toBe(0);
     expect(out).toContain('Tools: claude, cursor');
-    expect(out).toContain('Slash commands:');
-    expect(out).toContain(join(home, '.claude', 'commands', 'midas', 'spec.md'));
-    expect(out).toContain(join(home, '.cursor', 'commands', 'midas-break.md'));
     expect(out).toContain('Skills:');
-    expect(out).toContain(join(home, '.claude', 'skills', 'midas-implement', 'SKILL.md'));
-    expect(out).toContain('skipped (not supported): cursor');
+    expect(out).toContain(join(home, '.claude', 'skills', 'draun-implement', 'SKILL.md'));
+    expect(out).toContain(join(home, '.cursor', 'skills', 'draun-implement', 'SKILL.md'));
   });
 
   describe('runUpdate (lib)', () => {
     it('returns the report for an injected home without relying on os.homedir', async () => {
-      const otherHome = await mkdtemp(join(tmpdir(), 'midas-update-lib-'));
+      const otherHome = await mkdtemp(join(tmpdir(), 'draun-update-lib-'));
       try {
         await writeGlobalConfig(otherHome, 'tools:\n  - claude\n');
         const report = await runUpdate(otherHome);
         expect(report.tools).toEqual(['claude']);
-        expect(report.commands.byTool[0].files).toContain(
-          join(otherHome, '.claude', 'commands', 'midas', 'spec.md')
-        );
         expect(report.skills.byTool[0].tool).toBe('claude');
+        expect(report.skills.byTool[0].files).toContain(
+          join(otherHome, '.claude', 'skills', 'draun-spec', 'SKILL.md')
+        );
       } finally {
         await rm(otherHome, { recursive: true, force: true });
       }
     });
 
     it('throws CliError with exit 1 when the global config does not exist', async () => {
-      const emptyHome = await mkdtemp(join(tmpdir(), 'midas-update-lib-'));
+      const emptyHome = await mkdtemp(join(tmpdir(), 'draun-update-lib-'));
       try {
         await expect(runUpdate(emptyHome)).rejects.toMatchObject({
           exitCode: 1,
-          message: expect.stringContaining('midas init'),
+          message: expect.stringContaining('draun init'),
         });
         await expect(runUpdate(emptyHome)).rejects.toBeInstanceOf(CliError);
       } finally {

@@ -12,8 +12,8 @@ let dir: string;
 let home: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-language-'));
-  home = await mkdtemp(join(tmpdir(), 'midas-language-home-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-language-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-language-home-'));
 });
 
 afterEach(async () => {
@@ -23,12 +23,12 @@ afterEach(async () => {
 });
 
 async function writeConfig(content: string): Promise<void> {
-  await mkdir(join(dir, '.midas'), { recursive: true });
-  await writeFile(join(dir, '.midas', 'config.yaml'), content, 'utf8');
+  await mkdir(join(dir, '.draun'), { recursive: true });
+  await writeFile(join(dir, '.draun', 'config.yaml'), content, 'utf8');
 }
 
 async function writeGlobalConfig(content: string): Promise<void> {
-  await mkdir(join(home, '.midas'), { recursive: true });
+  await mkdir(join(home, '.draun'), { recursive: true });
   await writeFile(globalConfigPath(home), content, 'utf8');
 }
 
@@ -84,7 +84,7 @@ describe('readConfigLanguage', () => {
   });
 
   it('defaults to en-US when the language key is absent', async () => {
-    await writeConfig('context: hello\n');
+    await writeConfig('foo: bar\n');
 
     expect(await readConfigLanguage(dir, home)).toBe('en-US');
   });
@@ -111,7 +111,7 @@ describe('loadConfig language', () => {
   });
 
   it('defaults to en-US when the field is missing', async () => {
-    await writeConfig('context: hello\n');
+    await writeConfig('foo: bar\n');
 
     expect((await loadConfig(dir, home)).language).toBe('en-US');
   });

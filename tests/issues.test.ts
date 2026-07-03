@@ -30,7 +30,7 @@ function issue(partial: Partial<IndexIssue> & { number: string }): IndexIssue {
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'midas-issues-'));
+  dir = await mkdtemp(join(tmpdir(), 'draun-issues-'));
 });
 
 afterEach(async () => {
@@ -173,7 +173,7 @@ describe('renderIssues', () => {
 
 describe('makeIssuesCommand', () => {
   function makeProgram(): Command {
-    const program = new Command('midas')
+    const program = new Command('draun')
       .option('--json', 'emit machine-readable JSON output')
       .exitOverride()
       .configureOutput({ writeOut: () => {}, writeErr: () => {} });
@@ -182,7 +182,7 @@ describe('makeIssuesCommand', () => {
   }
 
   async function makeSpec(): Promise<void> {
-    const specDir = join(dir, '.midas', 'specs', 'pricing-engine', 'issues');
+    const specDir = join(dir, '.draun', 'specs', 'pricing-engine', 'issues');
     await mkdir(specDir, { recursive: true });
     await writeFile(join(specDir, 'INDEX.md'), INDEX_FIXTURE, 'utf8');
   }
@@ -251,7 +251,7 @@ describe('makeIssuesCommand', () => {
   });
 
   it('rejects an unknown slug with CliError', async () => {
-    await mkdir(join(dir, '.midas', 'specs'), { recursive: true });
+    await mkdir(join(dir, '.draun', 'specs'), { recursive: true });
     const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(dir);
     try {
       await expect(

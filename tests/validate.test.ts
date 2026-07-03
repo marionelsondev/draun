@@ -77,8 +77,8 @@ let specDir: string;
 let issuesDir: string;
 
 beforeEach(async () => {
-  cwd = await mkdtemp(join(tmpdir(), 'midas-validate-'));
-  specDir = join(cwd, '.midas', 'specs', 'pricing-engine');
+  cwd = await mkdtemp(join(tmpdir(), 'draun-validate-'));
+  specDir = join(cwd, '.draun', 'specs', 'pricing-engine');
   issuesDir = join(specDir, 'issues');
   await mkdir(specDir, { recursive: true });
 });

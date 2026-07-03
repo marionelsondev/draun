@@ -16,18 +16,12 @@ export function makeInstructionsCommand(): Command {
       }
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
       const payload = await getInstructions(process.cwd(), artifact as Artifact, opts.spec);
-      const ruleLines =
-        payload.rules.length > 0
-          ? payload.rules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')
-          : '(none)';
       const humanText = [
         payload.artifact === 'analyze'
           ? `Analyze the spec at ${payload.relOutputPath}`
           : `Write the ${payload.artifact} artifact to ${payload.relOutputPath}`,
-        'Rules:',
-        ruleLines,
         `Language: ${payload.language} — ${payload.languageDirective}`,
-        'Run with --json to get the full template and context.',
+        'Run with --json to get the full template.',
       ].join('\n');
       printResult(payload, humanText, json);
     });

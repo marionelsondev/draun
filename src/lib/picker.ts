@@ -20,7 +20,7 @@ export interface PickerIO {
 
 /**
  * Tool multi-select on @inquirer/checkbox (the same base OpenSpec uses),
- * skinned with the midas gold theme. Inquirer owns the hard parts —
+ * skinned with the draun gold theme. Inquirer owns the hard parts —
  * pagination, vim keys, `a` toggle-all / `i` invert, resize, Ctrl+C
  * cleanup — while theme.ts owns every color and glyph.
  *
@@ -69,7 +69,7 @@ export async function pickCheckbox(items: PickerItem[], io: PickerIO): Promise<s
 
 /**
  * Single-select counterpart to pickCheckbox, on @inquirer/select with the
- * same midas gold theme. Streams are injected so tests can drive it with
+ * same draun gold theme. Streams are injected so tests can drive it with
  * non-TTY streams.
  */
 export async function pickSelect(

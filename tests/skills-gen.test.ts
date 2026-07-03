@@ -11,12 +11,11 @@ const windsurf = TOOL_REGISTRY.find((t) => t.id === 'windsurf') as ToolDescripto
 const cursor = TOOL_REGISTRY.find((t) => t.id === 'cursor') as ToolDescriptor;
 const codex = TOOL_REGISTRY.find((t) => t.id === 'codex') as ToolDescriptor;
 const antigravity = TOOL_REGISTRY.find((t) => t.id === 'antigravity') as ToolDescriptor;
-const gemini = TOOL_REGISTRY.find((t) => t.id === 'gemini') as ToolDescriptor;
 
 let home: string;
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), 'midas-skills-home-'));
+  home = await mkdtemp(join(tmpdir(), 'draun-skills-home-'));
 });
 
 afterEach(async () => {
@@ -28,7 +27,7 @@ describe('renderSkillFile', () => {
     const spec = WORKFLOW_TEMPLATES[0];
     const content = renderSkillFile(spec);
     expect(content.startsWith('---\n')).toBe(true);
-    expect(content).toContain(`name: midas-${spec.name}`);
+    expect(content).toContain(`name: draun-${spec.name}`);
     expect(content).toContain(`description: ${spec.description}`);
     expect(content).toContain(spec.body);
   });
@@ -43,101 +42,91 @@ describe('renderSkillFile', () => {
 });
 
 describe('generateSkills', () => {
-  it('writes the five midas-* skill directories under each tool global skillsDir', async () => {
+  it('writes the five draun-* skill directories under each tool global skillsDir', async () => {
     const result = await generateSkills([claude, windsurf], home);
 
     expect(result.written).toEqual([
-      join(home, '.claude', 'skills', 'midas-spec', 'SKILL.md'),
-      join(home, '.claude', 'skills', 'midas-analyze', 'SKILL.md'),
-      join(home, '.claude', 'skills', 'midas-break', 'SKILL.md'),
-      join(home, '.claude', 'skills', 'midas-implement', 'SKILL.md'),
-      join(home, '.claude', 'skills', 'midas-archive', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-spec', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-analyze', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-break', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-implement', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-archive', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'draun-analyze', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'draun-break', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'draun-implement', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'draun-archive', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-spec', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-analyze', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-break', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-implement', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-archive', 'SKILL.md'),
     ]);
     expect(result.skipped).toEqual([]);
 
     const skill = await readFile(
-      join(home, '.claude', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'draun-spec', 'SKILL.md'),
       'utf8'
     );
     expect(skill.startsWith('---\n')).toBe(true);
-    expect(skill).toContain('name: midas-spec');
-    expect(skill).toContain('midas instructions spec --json');
+    expect(skill).toContain('name: draun-spec');
+    expect(skill).toContain('draun instructions spec --json');
   });
 
-  it('writes the five midas-* skill directories under the codex global skillsDir', async () => {
+  it('writes the five draun-* skill directories under the codex global skillsDir', async () => {
     const result = await generateSkills([codex], home);
 
     expect(result.written).toEqual([
-      join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
-      join(home, '.codex', 'skills', 'midas-analyze', 'SKILL.md'),
-      join(home, '.codex', 'skills', 'midas-break', 'SKILL.md'),
-      join(home, '.codex', 'skills', 'midas-implement', 'SKILL.md'),
-      join(home, '.codex', 'skills', 'midas-archive', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'draun-spec', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'draun-analyze', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'draun-break', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'draun-implement', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'draun-archive', 'SKILL.md'),
     ]);
     expect(result.skipped).toEqual([]);
 
     const skill = await readFile(
-      join(home, '.codex', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.codex', 'skills', 'draun-spec', 'SKILL.md'),
       'utf8'
     );
     expect(skill.startsWith('---\n')).toBe(true);
-    expect(skill).toContain('name: midas-spec');
+    expect(skill).toContain('name: draun-spec');
     expect(skill).toContain('description:');
-    expect(skill).toContain('midas instructions spec --json');
+    expect(skill).toContain('draun instructions spec --json');
   });
 
-  it('writes the five midas-* skill directories under the antigravity global skillsDir', async () => {
+  it('writes the five draun-* skill directories under the antigravity global skillsDir', async () => {
     const result = await generateSkills([antigravity], home);
 
     expect(result.written).toEqual([
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-analyze', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-break', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-implement', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-archive', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'draun-spec', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'draun-analyze', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'draun-break', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'draun-implement', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'draun-archive', 'SKILL.md'),
     ]);
     expect(result.skipped).toEqual([]);
 
     const skill = await readFile(
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
+      join(home, '.gemini', 'antigravity', 'skills', 'draun-spec', 'SKILL.md'),
       'utf8'
     );
-    expect(skill).toContain('name: midas-spec');
+    expect(skill).toContain('name: draun-spec');
   });
 
-  it('installing antigravity and gemini together does not collide', async () => {
-    const result = await generateSkills([antigravity, gemini], home);
+  it('writes skills for cursor now that it has a global skills destination', async () => {
+    const result = await generateSkills([cursor, claude], home);
 
-    expect(result.written).toEqual([
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-spec', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-analyze', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-break', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-implement', 'SKILL.md'),
-      join(home, '.gemini', 'antigravity', 'skills', 'midas-archive', 'SKILL.md'),
-    ]);
-    expect(result.skipped).toEqual(['gemini']);
-  });
-
-  it('reports tools without a global skills destination as skipped', async () => {
-    const result = await generateSkills([cursor, gemini, claude], home);
-
-    expect(result.skipped).toEqual(['cursor', 'gemini']);
-    expect(result.written).toHaveLength(5);
+    expect(result.skipped).toEqual([]);
+    expect(result.written).toHaveLength(10);
     expect(
-      result.written.every((p) => p.startsWith(join(home, '.claude', 'skills')))
+      result.written.some((p) => p.startsWith(join(home, '.cursor', 'skills')))
+    ).toBe(true);
+    expect(
+      result.written.some((p) => p.startsWith(join(home, '.claude', 'skills')))
     ).toBe(true);
   });
 
-  it('rewrites midas-* skills but leaves other skills untouched', async () => {
+  it('rewrites draun-* skills but leaves other skills untouched', async () => {
     const userSkillDir = join(home, '.claude', 'skills', 'my-skill');
     await mkdir(userSkillDir, { recursive: true });
     await writeFile(join(userSkillDir, 'SKILL.md'), 'user skill\n', 'utf8');
-    const staleDir = join(home, '.claude', 'skills', 'midas-break');
+    const staleDir = join(home, '.claude', 'skills', 'draun-break');
     await mkdir(staleDir, { recursive: true });
     await writeFile(join(staleDir, 'SKILL.md'), 'stale generated content\n', 'utf8');
 
@@ -146,7 +135,7 @@ describe('generateSkills', () => {
     expect(result.written).toContain(join(staleDir, 'SKILL.md'));
     const breakSkill = await readFile(join(staleDir, 'SKILL.md'), 'utf8');
     expect(breakSkill).not.toContain('stale generated content');
-    expect(breakSkill).toContain('name: midas-break');
+    expect(breakSkill).toContain('name: draun-break');
     expect(await readFile(join(userSkillDir, 'SKILL.md'), 'utf8')).toBe('user skill\n');
   });
 
@@ -158,17 +147,17 @@ describe('generateSkills', () => {
 
     expect(result.skipped).toEqual(['claude']);
     expect(result.written).toEqual([
-      join(home, '.windsurf', 'skills', 'midas-spec', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-analyze', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-break', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-implement', 'SKILL.md'),
-      join(home, '.windsurf', 'skills', 'midas-archive', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-spec', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-analyze', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-break', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-implement', 'SKILL.md'),
+      join(home, '.windsurf', 'skills', 'draun-archive', 'SKILL.md'),
     ]);
   });
 
   it('is idempotent: regeneration yields identical files', async () => {
     await generateSkills([claude, windsurf], home);
-    const path = join(home, '.windsurf', 'skills', 'midas-implement', 'SKILL.md');
+    const path = join(home, '.windsurf', 'skills', 'draun-implement', 'SKILL.md');
     const first = await readFile(path, 'utf8');
 
     await generateSkills([claude, windsurf], home);
