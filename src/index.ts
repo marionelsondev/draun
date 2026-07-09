@@ -6,6 +6,7 @@ import { CliError, renderError } from './lib/output.js';
 import { globalConfigExists } from './lib/global-setup.js';
 import { red } from './lib/theme.js';
 import { makeArchiveCommand } from './commands/archive.js';
+import { makeConfigCommand } from './commands/config.js';
 import { makeDoneCommand, makeReopenCommand } from './commands/done.js';
 import { makeInitCommand } from './commands/init.js';
 import { makeInstructionsCommand } from './commands/instructions.js';
@@ -43,6 +44,7 @@ export function buildProgram(): Command {
   });
 
   program.addCommand(makeInitCommand());
+  program.addCommand(makeConfigCommand());
   program.addCommand(makeUpdateCommand());
   program.addCommand(makeNewCommand());
   program.addCommand(makeInstructionsCommand());
@@ -64,12 +66,12 @@ export async function runCli(argv: string[], io?: Partial<CliIO>): Promise<numbe
   const program = buildProgram();
   program.configureOutput({ writeOut: stdout, writeErr: stderr });
 
-  // First-use orientation: every real subcommand except init points at the
-  // global setup when ~/.draun/config.yaml is missing. Suppressed under
+  // First-use orientation: every real subcommand except init/config points at
+  // the global setup when ~/.draun/config.yaml is missing. Suppressed under
   // --json, where both streams must stay machine-parseable.
   program.hook('preAction', async (_thisCommand, actionCommand) => {
     const name = actionCommand.name();
-    if (name === 'draun' || name === 'init') {
+    if (name === 'draun' || name === 'init' || name === 'config') {
       return;
     }
     if (actionCommand.optsWithGlobals<{ json?: boolean }>().json === true) {

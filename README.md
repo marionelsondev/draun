@@ -52,6 +52,7 @@ Every command accepts `--json` for machine-readable output (that's how the skill
 | Command | What it does |
 | --- | --- |
 | `draun init [--tools <ids\|all>] [--language <lang>] [--force]` | Prepare the repo: global setup on first run, then `.draun/` scaffolding and agent integrations. |
+| `draun config [--tools <ids\|all>] [--language <lang>] [--scope global\|project]` | Interactive settings TUI: Settings list (Tools, Spec language) → Enter to edit → Esc back → `s` once to save. Search filters the list. Flags skip the UI. Bootstraps global config if missing; syncs skills on save. |
 | `draun update` | Regenerate the global integration files (skills) after upgrading the CLI. |
 | `draun new <name>` | Scaffold a new spec folder with a slug derived from the name. |
 | `draun status [slug]` | Without slug: all specs grouped by lifecycle (in progress / not started / not broken down / done), each with progress bar and next actionable issue. With slug: per-issue detail. |
@@ -79,7 +80,7 @@ Generated for each configured tool; the skills are the same five workflows:
 
 Two layers; project overrides global.
 
-`~/.draun/config.yaml` (global, written by the first `init`):
+`~/.draun/config.yaml` (global, written by the first `init` or by `draun config`):
 
 ```yaml
 tools:            # AI tools to generate integrations for
@@ -93,6 +94,8 @@ language: en-US   # en-US | pt-BR — language of specs/issues and AI conversati
 # specsRoot: .draun/specs   # where specs live (default)
 # language: pt-BR           # override the global language
 ```
+
+Use `draun config` in a terminal for the settings UI: pick an item from the list, edit it, go back, then **save once** with `s`. Language can be global or project-only after `draun init`. Non-interactive: `--tools` / `--language` / `--scope`. Inspect: `draun config --json`.
 
 CLI human output is always English; `language` governs spec/issue content and the AI conversation.
 
