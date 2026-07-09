@@ -60,6 +60,12 @@ describe('resolveGlobalPaths', () => {
     expect(resolved?.skillsDir).toBe(join(home, '.config', 'opencode', 'skills'));
   });
 
+  it('resolves grok global skills under ~/.grok/skills', () => {
+    const resolved = resolveGlobalPaths(getTool('grok'), home);
+    expect(resolved).not.toBeNull();
+    expect(resolved?.skillsDir).toBe(join(home, '.grok', 'skills'));
+  });
+
   it('returns null for every tool without a global destination', () => {
     const withoutGlobal: string[] = [];
     for (const id of withoutGlobal) {

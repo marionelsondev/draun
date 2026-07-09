@@ -123,7 +123,7 @@ describe('draun init --tools', () => {
     expect(config ?? {}).not.toHaveProperty('tools');
   });
 
-  it('--tools all selects exactly the six supported tools', async () => {
+  it('--tools all selects exactly the seven supported tools', async () => {
     const { code, out } = await run(['init', '--tools', 'all', '--json']);
     expect(code).toBe(0);
     const payload = JSON.parse(out) as InitJson;
@@ -135,6 +135,7 @@ describe('draun init --tools', () => {
       'codex',
       'antigravity',
       'opencode',
+      'grok',
     ]);
   });
 
@@ -161,6 +162,30 @@ describe('draun init --tools', () => {
     // Nothing is written into the project beyond AGENTS.md and .draun/.
     expect(await exists(join(dir, '.agents'))).toBe(false);
     expect(await exists(join(dir, '.gemini'))).toBe(false);
+  });
+
+  it('--tools grok installs the five skills', async () => {
+    const { code, out } = await run(['init', '--tools', 'grok', '--json']);
+    expect(code).toBe(0);
+
+    const payload = JSON.parse(out) as InitJson;
+    expect(payload.tools).toEqual(['grok']);
+
+    const skillsRoot = join(home, '.grok', 'skills');
+    const entry = payload.generated.skills.byTool.find((e) => e.tool === 'grok');
+    expect(entry?.files).toEqual([
+      join(skillsRoot, 'draun-spec', 'SKILL.md'),
+      join(skillsRoot, 'draun-analyze', 'SKILL.md'),
+      join(skillsRoot, 'draun-break', 'SKILL.md'),
+      join(skillsRoot, 'draun-implement', 'SKILL.md'),
+      join(skillsRoot, 'draun-archive', 'SKILL.md'),
+    ]);
+    for (const file of entry?.files ?? []) {
+      expect(await exists(file)).toBe(true);
+    }
+
+    // Skills are global-only — no project .grok/ from init.
+    expect(await exists(join(dir, '.grok'))).toBe(false);
   });
 
   it('rejects the removed aider id with exit 2', async () => {

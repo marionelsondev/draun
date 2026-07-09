@@ -2,7 +2,7 @@
 
 # Draun
 
-CLI de Spec-Driven Development (SDD). O `draun` cria a estrutura de specs, valida os arquivos markdown de SPEC/issues, acompanha o progresso das issues com um grafo de dependências — e instala o fluxo SDD nos seus agentes de IA (Claude Code, Cursor, Windsurf, opencode e qualquer agente que leia `AGENTS.md`).
+CLI de Spec-Driven Development (SDD). O `draun` cria a estrutura de specs, valida os arquivos markdown de SPEC/issues, acompanha o progresso das issues com um grafo de dependências — e instala o fluxo SDD nos seus agentes de IA (Claude Code, Cursor, Windsurf, opencode, Grok e qualquer agente que leia `AGENTS.md`).
 
 O markdown é a única fonte de verdade: o CLI lê e edita `SPEC.md`, `issues/*.md` e `issues/INDEX.md` — nunca os substitui. Os agentes de IA fazem a escrita criativa; o CLI garante estrutura, consistência e acompanhamento.
 
@@ -52,6 +52,7 @@ Todo comando aceita `--json` para saída legível por máquina (é assim que as 
 | Comando | O que faz |
 | --- | --- |
 | `draun init [--tools <ids\|all>] [--language <lang>] [--force]` | Prepara o repositório: setup global na primeira execução, depois a estrutura `.draun/` e as integrações dos agentes. |
+| `draun config [--tools <ids\|all>] [--language <lang>] [--scope global\|project]` | TUI de configuração: lista Settings (Tools, Spec language) → Enter para editar → Esc voltar → `s` uma vez para salvar. Busca filtra a lista. Flags pulam a UI. Cria config global se faltar; sincroniza skills ao salvar. |
 | `draun update` | Regenera os arquivos globais de integração (skills) após atualizar o CLI. |
 | `draun new <nome>` | Cria a pasta de uma nova spec com slug derivado do nome. |
 | `draun status [slug]` | Sem slug: todas as specs agrupadas por ciclo de vida (em andamento / não iniciadas / não detalhadas / concluídas), cada uma com barra de progresso e a próxima issue acionável. Com slug: detalhe por issue. |
@@ -79,7 +80,7 @@ Geradas para cada ferramenta configurada; as skills são os mesmos cinco workflo
 
 Duas camadas; o projeto sobrescreve o global.
 
-`~/.draun/config.yaml` (global, escrito pelo primeiro `init`):
+`~/.draun/config.yaml` (global, escrito pelo primeiro `init` ou por `draun config`):
 
 ```yaml
 tools:            # ferramentas de IA para gerar as integrações
@@ -94,11 +95,13 @@ language: en-US   # en-US | pt-BR — idioma das specs/issues e da conversa com 
 # language: pt-BR           # sobrescreve o idioma global
 ```
 
+Use `draun config` no terminal: escolha um item na lista, edite, volte, e **salve uma vez** com `s`. O idioma pode ser global ou só do projeto após `draun init`. Não interativo: `--tools` / `--language` / `--scope`. Inspecione: `draun config --json`.
+
 A saída humana do CLI é sempre em inglês; `language` governa o conteúdo das specs/issues e a conversa com a IA.
 
 ## Ferramentas suportadas
 
-Claude Code, Cursor, Windsurf, Codex CLI e opencode. Ferramentas sem convenção nativa de skills ainda recebem a camada universal do `AGENTS.md`.
+Claude Code, Cursor, Windsurf, Codex CLI, opencode e Grok. Ferramentas sem convenção nativa de skills ainda recebem a camada universal do `AGENTS.md`.
 
 ## Licença
 

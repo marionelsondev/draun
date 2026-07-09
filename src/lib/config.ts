@@ -17,6 +17,31 @@ export function globalConfigPath(homeDir = homedir()): string {
 }
 
 /**
+ * Whether two paths refer to the same directory. String equality alone is not
+ * enough on Windows: temp paths often use the 8.3 short form
+ * (`C:\Users\MARIO~1.NET\...`) while `USERPROFILE` is the long form, and
+ * `realpath` does not unify them. Compare device+inode when both exist.
+ */
+async function isSameDirectory(a: string, b: string): Promise<boolean> {
+  const ra = resolve(a);
+  const rb = resolve(b);
+  if (ra === rb) {
+    return true;
+  }
+  if (process.platform === 'win32' && ra.toLowerCase() === rb.toLowerCase()) {
+    return true;
+  }
+  try {
+    const sa = await stat(ra);
+    const sb = await stat(rb);
+    // ino can be 0 on some Windows volumes; still correct when both match.
+    return sa.isDirectory() && sb.isDirectory() && sa.dev === sb.dev && sa.ino === sb.ino;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Find the project root by walking up from `startDir` until a directory
  * containing a `.draun/` folder is found. The home directory is skipped:
  * `~/.draun` holds the global config and does not mark a project root.
@@ -28,14 +53,22 @@ export async function findProjectRoot(
 ): Promise<string | null> {
   // The real user home is never a project root either, even when a different
   // homeDir is injected (tests run under %TEMP%, which lives below it).
-  const skip = new Set([resolve(homeDir)]);
+  const skipDirs = [resolve(homeDir)];
   const envHome = process.env.USERPROFILE ?? process.env.HOME;
   if (envHome !== undefined && envHome !== '') {
-    skip.add(resolve(envHome));
+    skipDirs.push(resolve(envHome));
   }
+
   let dir = resolve(startDir);
   for (;;) {
-    if (!skip.has(dir)) {
+    let skipped = false;
+    for (const skip of skipDirs) {
+      if (await isSameDirectory(dir, skip)) {
+        skipped = true;
+        break;
+      }
+    }
+    if (!skipped) {
       try {
         if ((await stat(join(dir, '.draun'))).isDirectory()) {
           return dir;
@@ -100,6 +133,20 @@ function coerceStringList(value: unknown): string[] {
     return value.filter((item): item is string => typeof item === 'string');
   }
   return [];
+}
+
+/**
+ * Read only the global config layer (tools + language). Ignores any project
+ * layer — used when rewriting `~/.draun/config.yaml` without project bleed.
+ */
+export async function readGlobalConfigLayer(
+  homeDir = homedir(),
+): Promise<{ tools: string[]; language: Language }> {
+  const global = (await readLayer(globalConfigPath(homeDir))) ?? {};
+  return {
+    language: resolveLanguage(global.language ?? undefined),
+    tools: coerceStringList(global.tools),
+  };
 }
 
 /**

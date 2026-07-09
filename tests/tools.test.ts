@@ -28,7 +28,15 @@ async function writeGlobalConfig(content: string): Promise<void> {
 describe('TOOL_REGISTRY', () => {
   it('covers exactly the supported tool ids', () => {
     const ids = TOOL_REGISTRY.map((tool) => tool.id);
-    expect(ids).toEqual(['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'opencode']);
+    expect(ids).toEqual([
+      'claude',
+      'cursor',
+      'windsurf',
+      'codex',
+      'antigravity',
+      'opencode',
+      'grok',
+    ]);
   });
 
   it('has unique ids', () => {
@@ -91,6 +99,14 @@ describe('detectTools', () => {
     expect(detected.map((tool) => tool.id)).toEqual(['opencode']);
   });
 
+  it('detects grok via the .grok/ directory', async () => {
+    await mkdir(join(dir, '.grok'), { recursive: true });
+
+    const detected = await detectTools(dir);
+
+    expect(detected.map((tool) => tool.id)).toEqual(['grok']);
+  });
+
   it('does not detect antigravity in a repo with only .claude/', async () => {
     await mkdir(join(dir, '.claude'), { recursive: true });
 
@@ -115,7 +131,7 @@ describe('resolveToolsFlag', () => {
     expect(tools.map((tool) => tool.id)).toEqual(['claude', 'cursor']);
   });
 
-  it('maps all to exactly the six supported ids', () => {
+  it('maps all to exactly the seven supported ids', () => {
     const tools = resolveToolsFlag('all');
     expect(tools.map((tool) => tool.id)).toEqual([
       'claude',
@@ -124,6 +140,7 @@ describe('resolveToolsFlag', () => {
       'codex',
       'antigravity',
       'opencode',
+      'grok',
     ]);
   });
 
@@ -137,7 +154,15 @@ describe('resolveToolsFlag', () => {
     expect(caught).toBeInstanceOf(CliError);
     expect((caught as CliError).exitCode).toBe(2);
     expect((caught as CliError).message).toContain("unknown tool 'aider'");
-    for (const id of ['claude', 'cursor', 'windsurf', 'codex', 'antigravity', 'opencode']) {
+    for (const id of [
+      'claude',
+      'cursor',
+      'windsurf',
+      'codex',
+      'antigravity',
+      'opencode',
+      'grok',
+    ]) {
       expect((caught as CliError).message).toContain(id);
     }
   });
