@@ -11,6 +11,7 @@ const windsurf = TOOL_REGISTRY.find((t) => t.id === 'windsurf') as ToolDescripto
 const cursor = TOOL_REGISTRY.find((t) => t.id === 'cursor') as ToolDescriptor;
 const codex = TOOL_REGISTRY.find((t) => t.id === 'codex') as ToolDescriptor;
 const antigravity = TOOL_REGISTRY.find((t) => t.id === 'antigravity') as ToolDescriptor;
+const grok = TOOL_REGISTRY.find((t) => t.id === 'grok') as ToolDescriptor;
 
 let home: string;
 
@@ -104,6 +105,25 @@ describe('generateSkills', () => {
 
     const skill = await readFile(
       join(home, '.gemini', 'antigravity', 'skills', 'draun-spec', 'SKILL.md'),
+      'utf8'
+    );
+    expect(skill).toContain('name: draun-spec');
+  });
+
+  it('writes the five draun-* skill directories under the grok global skillsDir', async () => {
+    const result = await generateSkills([grok], home);
+
+    expect(result.written).toEqual([
+      join(home, '.grok', 'skills', 'draun-spec', 'SKILL.md'),
+      join(home, '.grok', 'skills', 'draun-analyze', 'SKILL.md'),
+      join(home, '.grok', 'skills', 'draun-break', 'SKILL.md'),
+      join(home, '.grok', 'skills', 'draun-implement', 'SKILL.md'),
+      join(home, '.grok', 'skills', 'draun-archive', 'SKILL.md'),
+    ]);
+    expect(result.skipped).toEqual([]);
+
+    const skill = await readFile(
+      join(home, '.grok', 'skills', 'draun-spec', 'SKILL.md'),
       'utf8'
     );
     expect(skill).toContain('name: draun-spec');

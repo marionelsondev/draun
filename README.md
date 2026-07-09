@@ -2,7 +2,7 @@
 
 # Draun
 
-Spec-Driven Development (SDD) CLI. `draun` scaffolds spec folders, validates SPEC/issue markdown files, tracks issue progress with a dependency graph — and installs the SDD workflow into your AI coding agents (Claude Code, Cursor, Windsurf, opencode, and any agent that reads `AGENTS.md`).
+Spec-Driven Development (SDD) CLI. `draun` scaffolds spec folders, validates SPEC/issue markdown files, tracks issue progress with a dependency graph — and installs the SDD workflow into your AI coding agents (Claude Code, Cursor, Windsurf, opencode, Grok, and any agent that reads `AGENTS.md`).
 
 Markdown is the single source of truth: the CLI parses and edits `SPEC.md`, `issues/*.md`, and `issues/INDEX.md` — it never replaces them. AI agents do the creative writing; the CLI guarantees structure, consistency, and tracking.
 
@@ -98,7 +98,7 @@ CLI human output is always English; `language` governs spec/issue content and th
 
 ## Supported tools
 
-Claude Code, Cursor, Windsurf, Codex CLI, and opencode. Tools without a native skills convention still get the universal `AGENTS.md` layer.
+Claude Code, Cursor, Windsurf, Codex CLI, opencode, and Grok. Tools without a native skills convention still get the universal `AGENTS.md` layer.
 
 ## License
 

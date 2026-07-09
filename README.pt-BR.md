@@ -2,7 +2,7 @@
 
 # Draun
 
-CLI de Spec-Driven Development (SDD). O `draun` cria a estrutura de specs, valida os arquivos markdown de SPEC/issues, acompanha o progresso das issues com um grafo de dependências — e instala o fluxo SDD nos seus agentes de IA (Claude Code, Cursor, Windsurf, opencode e qualquer agente que leia `AGENTS.md`).
+CLI de Spec-Driven Development (SDD). O `draun` cria a estrutura de specs, valida os arquivos markdown de SPEC/issues, acompanha o progresso das issues com um grafo de dependências — e instala o fluxo SDD nos seus agentes de IA (Claude Code, Cursor, Windsurf, opencode, Grok e qualquer agente que leia `AGENTS.md`).
 
 O markdown é a única fonte de verdade: o CLI lê e edita `SPEC.md`, `issues/*.md` e `issues/INDEX.md` — nunca os substitui. Os agentes de IA fazem a escrita criativa; o CLI garante estrutura, consistência e acompanhamento.
 
@@ -98,7 +98,7 @@ A saída humana do CLI é sempre em inglês; `language` governa o conteúdo das 
 
 ## Ferramentas suportadas
 
-Claude Code, Cursor, Windsurf, Codex CLI e opencode. Ferramentas sem convenção nativa de skills ainda recebem a camada universal do `AGENTS.md`.
+Claude Code, Cursor, Windsurf, Codex CLI, opencode e Grok. Ferramentas sem convenção nativa de skills ainda recebem a camada universal do `AGENTS.md`.
 
 ## Licença
 

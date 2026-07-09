@@ -79,6 +79,15 @@ export const TOOL_REGISTRY: ToolDescriptor[] = [
       skillsDir: '.config/opencode/skills',
     },
   },
+  {
+    id: 'grok',
+    name: 'Grok',
+    rootDir: '.grok',
+    skillsDir: '.grok/skills',
+    global: {
+      skillsDir: '.grok/skills',
+    },
+  },
 ];
 
 export interface ResolvedGlobalPaths {

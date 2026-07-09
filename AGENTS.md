@@ -29,7 +29,7 @@ Without them, drive the same loop with the CLI:
 
 1. `draun new <spec-name>` — scaffold a new spec folder.
 2. Write `SPEC.md` — describe components and behaviors (run
-   `draun instructions spec` for the expected format and project rules).
+   `draun instructions spec` for the expected format).
 3. `draun instructions break --spec <spec-slug>` — get instructions for
    breaking the spec into issues, then write `issues/*.md` and `issues/INDEX.md`.
 4. `draun issues <spec-slug> --ready` — list issues whose blockers are all done.
