@@ -1,4 +1,4 @@
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { load } from 'js-yaml';
@@ -17,22 +17,28 @@ export function globalConfigPath(homeDir = homedir()): string {
 }
 
 /**
- * Resolve a path and, when the target exists, also its realpath. On Windows
- * %TEMP% often uses 8.3 short names (e.g. MARIO~1.NET) while USERPROFILE is
- * the long form — string equality alone would miss that they are the same dir.
+ * Whether two paths refer to the same directory. String equality alone is not
+ * enough on Windows: temp paths often use the 8.3 short form
+ * (`C:\Users\MARIO~1.NET\...`) while `USERPROFILE` is the long form, and
+ * `realpath` does not unify them. Compare device+inode when both exist.
  */
-async function pathAliases(path: string): Promise<string[]> {
-  const resolved = resolve(path);
-  const aliases = [resolved];
-  try {
-    const real = await realpath(resolved);
-    if (real !== resolved) {
-      aliases.push(real);
-    }
-  } catch {
-    // path may not exist yet (injected test homes)
+async function isSameDirectory(a: string, b: string): Promise<boolean> {
+  const ra = resolve(a);
+  const rb = resolve(b);
+  if (ra === rb) {
+    return true;
   }
-  return aliases;
+  if (process.platform === 'win32' && ra.toLowerCase() === rb.toLowerCase()) {
+    return true;
+  }
+  try {
+    const sa = await stat(ra);
+    const sb = await stat(rb);
+    // ino can be 0 on some Windows volumes; still correct when both match.
+    return sa.isDirectory() && sb.isDirectory() && sa.dev === sb.dev && sa.ino === sb.ino;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -47,17 +53,22 @@ export async function findProjectRoot(
 ): Promise<string | null> {
   // The real user home is never a project root either, even when a different
   // homeDir is injected (tests run under %TEMP%, which lives below it).
-  const skip = new Set<string>(await pathAliases(homeDir));
+  const skipDirs = [resolve(homeDir)];
   const envHome = process.env.USERPROFILE ?? process.env.HOME;
   if (envHome !== undefined && envHome !== '') {
-    for (const alias of await pathAliases(envHome)) {
-      skip.add(alias);
-    }
+    skipDirs.push(resolve(envHome));
   }
+
   let dir = resolve(startDir);
   for (;;) {
-    const dirAliases = await pathAliases(dir);
-    if (!dirAliases.some((alias) => skip.has(alias))) {
+    let skipped = false;
+    for (const skip of skipDirs) {
+      if (await isSameDirectory(dir, skip)) {
+        skipped = true;
+        break;
+      }
+    }
+    if (!skipped) {
       try {
         if ((await stat(join(dir, '.draun'))).isDirectory()) {
           return dir;
@@ -122,6 +133,20 @@ function coerceStringList(value: unknown): string[] {
     return value.filter((item): item is string => typeof item === 'string');
   }
   return [];
+}
+
+/**
+ * Read only the global config layer (tools + language). Ignores any project
+ * layer — used when rewriting `~/.draun/config.yaml` without project bleed.
+ */
+export async function readGlobalConfigLayer(
+  homeDir = homedir(),
+): Promise<{ tools: string[]; language: Language }> {
+  const global = (await readLayer(globalConfigPath(homeDir))) ?? {};
+  return {
+    language: resolveLanguage(global.language ?? undefined),
+    tools: coerceStringList(global.tools),
+  };
 }
 
 /**
