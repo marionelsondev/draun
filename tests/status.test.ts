@@ -7,15 +7,22 @@ import { CliError } from '../src/lib/output.js';
 import { listSpecStatuses, parseIndex, readSpecStatus } from '../src/lib/index-parser.js';
 import { makeStatusCommand, renderSpecDetail, renderSpecList } from '../src/commands/status.js';
 import { getMessages } from '../src/lib/messages.js';
+import {
+  calculateProgressBar,
+  renderProgressBarWithLabel,
+  resolveProgressBarMode,
+} from '../src/lib/progress-bar.js';
 
 // The status command resolves language via the global config in os.homedir();
 // point the home at a temp dir so the real one never leaks in.
 const mocked = vi.hoisted(() => ({ home: '' }));
+const mockedTui = vi.hoisted(() => ({ runStatusTui: vi.fn(async () => undefined) }));
 vi.mock('node:os', async (importOriginal) => {
   const os = await importOriginal<typeof import('node:os')>();
   const homedir = () => mocked.home;
   return { ...os, homedir, default: { ...os, homedir } };
 });
+vi.mock('../src/tui/render.js', () => mockedTui);
 
 const INDEX_FIXTURE = `# Issues — Pricing Engine
 
@@ -44,7 +51,48 @@ beforeEach(async () => {
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
   await rm(home, { recursive: true, force: true });
+  mockedTui.runStatusTui.mockClear();
 });
+
+function setIsTTY(stream: NodeJS.ReadStream | NodeJS.WriteStream, value: boolean): () => void {
+  const descriptor = Object.getOwnPropertyDescriptor(stream, 'isTTY');
+  Object.defineProperty(stream, 'isTTY', { configurable: true, value });
+  return () => {
+    if (descriptor !== undefined) {
+      Object.defineProperty(stream, 'isTTY', descriptor);
+    } else {
+      delete (stream as { isTTY?: boolean }).isTTY;
+    }
+  };
+}
+
+function collectObjectKeys(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(collectObjectKeys);
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.entries(value).flatMap(([key, child]) => [key, ...collectObjectKeys(child)]);
+  }
+  return [];
+}
+
+function expectJsonHasNoVisualOutput(value: unknown, output: string): void {
+  expect(output).not.toMatch(/\x1b\[[0-9;]*m|\\u001b\[[0-9;]*m/);
+  const keys = collectObjectKeys(value);
+  for (const key of ['frame', 'animation', 'progressBar', 'visual']) {
+    expect(keys).not.toContain(key);
+  }
+}
+
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function rgbCodes(text: string): string[] {
+  return Array.from(text.matchAll(/\x1b\[38;2;(\d+);(\d+);(\d+)m/g), (match) =>
+    match.slice(1).join(','),
+  );
+}
 
 async function makeSpec(slug: string, indexContent?: string, withIssuesDir = false): Promise<void> {
   const specDir = join(dir, slug);
@@ -329,6 +377,147 @@ describe('renderSpecDetail', () => {
   });
 });
 
+describe('progress bar rendering', () => {
+  it('keeps percentage based on done issues only while rendering in-progress separately', () => {
+    const model = calculateProgressBar({ done: 1, inProgress: 3, total: 4, width: 8 });
+
+    expect(model.percent).toBe(25);
+    expect(model.segments).toEqual([
+      { kind: 'done', width: 2 },
+      { kind: 'in-progress', width: 6 },
+      { kind: 'pending', width: 0 },
+    ]);
+  });
+
+  it('keeps the compatibility wrapper shape for plain static output', () => {
+    expect(
+      renderProgressBarWithLabel({ done: 2, inProgress: 1, total: 6, width: 6 }, { mode: 'plain' }),
+    ).toBe('██▓░░░ 33%');
+  });
+
+  it('handles empty totals and small widths without unstable output', () => {
+    expect(
+      renderProgressBarWithLabel({ done: 1, inProgress: 1, total: 0, width: 3 }, { mode: 'plain' }),
+    ).toBe('░░░ 0%');
+    expect(
+      renderProgressBarWithLabel({ done: 1, inProgress: 1, total: 2, width: -1 }, { mode: 'plain' }),
+    ).toBe(' 50%');
+  });
+
+  it('renders animated truecolor with multiple RGB stops and shifts by frame', () => {
+    const input = { done: 8, inProgress: 0, total: 8, width: 8 };
+    const first = renderProgressBarWithLabel(input, { mode: 'animated-truecolor', frame: 0 });
+    const second = renderProgressBarWithLabel(input, { mode: 'animated-truecolor', frame: 1 });
+
+    expect(stripAnsi(first)).toBe('████████ 100%');
+    expect(new Set(rgbCodes(first)).size).toBeGreaterThan(3);
+    expect(first).not.toBe(second);
+  });
+
+  it('renders in-progress as a distinct segment while preserving the block symbol', () => {
+    const out = renderProgressBarWithLabel(
+      { done: 2, inProgress: 2, total: 6, width: 6 },
+      { mode: 'static-truecolor' },
+    );
+    const colors = rgbCodes(out);
+
+    expect(stripAnsi(out)).toBe('██▓▓░░ 33%');
+    expect(stripAnsi(out)).toContain('▓▓');
+    expect(colors).toContain('75,43,157');
+    expect(new Set(colors).size).toBe(3);
+    expect(colors[0]).not.toBe(colors[1]);
+  });
+
+  it('keeps the in-progress prefilled segment static while done animates', () => {
+    const input = { done: 3, inProgress: 3, total: 6, width: 6 };
+    const first = renderProgressBarWithLabel(input, { mode: 'animated-truecolor', frame: 0 });
+    const second = renderProgressBarWithLabel(input, { mode: 'animated-truecolor', frame: 8 });
+
+    const firstInProgress = first.match(/(?:\x1b\[38;2;\d+;\d+;\d+m▓\x1b\[39m)+/)?.[0];
+    const secondInProgress = second.match(/(?:\x1b\[38;2;\d+;\d+;\d+m▓\x1b\[39m)+/)?.[0];
+
+    expect(stripAnsi(first)).toBe('███▓▓▓ 50%');
+    expect(first).not.toBe(second);
+    expect(firstInProgress).toBe(secondInProgress);
+  });
+
+  it('keeps pending muted and deterministic in truecolor and ANSI modes', () => {
+    const input = { done: 0, inProgress: 0, total: 4, width: 4 };
+    const truecolor = renderProgressBarWithLabel(input, { mode: 'static-truecolor', frame: 0 });
+    const truecolorLater = renderProgressBarWithLabel(input, { mode: 'static-truecolor', frame: 12 });
+    const ansi = renderProgressBarWithLabel(input, { mode: 'static-ansi' });
+
+    expect(truecolor).toBe(truecolorLater);
+    expect(rgbCodes(truecolor)).toEqual(['107,114,128']);
+    expect(stripAnsi(ansi)).toBe('░░░░ 0%');
+    expect(ansi).toContain('\x1b[2m');
+    expect(ansi).toContain('\x1b[90m');
+  });
+
+  it('keeps stripped ANSI text stable for narrow mixed bars', () => {
+    const out = renderProgressBarWithLabel(
+      { done: 1, inProgress: 1, total: 3, width: 3 },
+      { mode: 'animated-truecolor', frame: 3 },
+    );
+
+    expect(stripAnsi(out)).toBe('█▓░ 33%');
+  });
+
+  it('ignores frame values for static truecolor rendering', () => {
+    const input = { done: 4, inProgress: 0, total: 4, width: 4 };
+    expect(renderProgressBarWithLabel(input, { mode: 'static-truecolor', frame: 0 })).toBe(
+      renderProgressBarWithLabel(input, { mode: 'static-truecolor', frame: 99 }),
+    );
+    expect(renderProgressBarWithLabel(input, { mode: 'animated-truecolor', frame: 0 })).not.toBe(
+      renderProgressBarWithLabel(input, { mode: 'animated-truecolor', frame: 1 }),
+    );
+  });
+
+  it('selects rendering mode from terminal capabilities only', () => {
+    expect(
+      resolveProgressBarMode({
+        color: true,
+        truecolor: true,
+        interactive: true,
+        animation: true,
+      }),
+    ).toBe('animated-truecolor');
+    expect(
+      resolveProgressBarMode({
+        color: true,
+        truecolor: true,
+        interactive: true,
+        animation: true,
+        reducedMotion: true,
+      }),
+    ).toBe('static-truecolor');
+    expect(
+      resolveProgressBarMode({
+        color: true,
+        truecolor: false,
+        interactive: true,
+        animation: true,
+      }),
+    ).toBe('static-ansi');
+    expect(
+      resolveProgressBarMode({
+        color: false,
+        truecolor: true,
+        interactive: true,
+        animation: true,
+      }),
+    ).toBe('plain');
+    expect(
+      resolveProgressBarMode({
+        color: true,
+        truecolor: true,
+        interactive: false,
+        animation: true,
+      }),
+    ).toBe('static-truecolor');
+  });
+});
+
 describe('makeStatusCommand', () => {
   function makeProgram(): Command {
     const program = new Command('draun')
@@ -368,6 +557,7 @@ describe('makeStatusCommand', () => {
     expect(payload.specs).toHaveLength(1);
     expect(payload.specs[0].slug).toBe('pricing-engine');
     expect(payload.specs[0].total).toBe(3);
+    expectJsonHasNoVisualOutput(payload, out);
   });
 
   it('shows detail for a known slug with --json', async () => {
@@ -381,6 +571,44 @@ describe('makeStatusCommand', () => {
     expect(payload.slug).toBe('pricing-engine');
     expect(payload.done).toBe(2);
     expect(payload.issues).toHaveLength(3);
+    expectJsonHasNoVisualOutput(payload, out);
+  });
+
+  it('does not enter the TUI for --json even when attached to TTY streams', async () => {
+    const specsRoot = join(dir, '.draun', 'specs');
+    await mkdir(join(specsRoot, 'pricing-engine', 'issues'), { recursive: true });
+    await writeFile(join(specsRoot, 'pricing-engine', 'issues', 'INDEX.md'), INDEX_FIXTURE, 'utf8');
+    const restoreStdout = setIsTTY(process.stdout, true);
+    const restoreStdin = setIsTTY(process.stdin, true);
+    try {
+      const out = await runCapture(['status', '--json'], dir);
+
+      expect(JSON.parse(out)).toMatchObject({ specs: [{ slug: 'pricing-engine' }] });
+      expect(mockedTui.runStatusTui).not.toHaveBeenCalled();
+    } finally {
+      restoreStdout();
+      restoreStdin();
+    }
+  });
+
+  it('keeps textual status deterministic outside TTY streams', async () => {
+    const specsRoot = join(dir, '.draun', 'specs');
+    await mkdir(join(specsRoot, 'pricing-engine', 'issues'), { recursive: true });
+    await writeFile(join(specsRoot, 'pricing-engine', 'issues', 'INDEX.md'), INDEX_FIXTURE, 'utf8');
+    const restoreStdout = setIsTTY(process.stdout, false);
+    const restoreStdin = setIsTTY(process.stdin, false);
+    try {
+      const first = await runCapture(['status'], dir);
+      const second = await runCapture(['status'], dir);
+
+      expect(first).toBe(second);
+      expect(first).toContain('pricing-engine');
+      expect(first).toContain('67%');
+      expect(mockedTui.runStatusTui).not.toHaveBeenCalled();
+    } finally {
+      restoreStdout();
+      restoreStdin();
+    }
   });
 
   it('shows a not-broken-down spec without erroring', async () => {

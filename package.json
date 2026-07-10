@@ -1,6 +1,6 @@
 {
   "name": "draun",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Spec-Driven Development CLI: scaffold specs, validate artifacts, and track issue progress from markdown.",
   "keywords": [
     "spec-driven-development",
