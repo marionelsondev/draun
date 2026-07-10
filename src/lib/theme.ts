@@ -1,5 +1,10 @@
 import { release } from 'node:os';
 import pc from 'picocolors';
+import {
+  renderProgressBarWithLabel,
+  resolveProgressBarMode,
+  type ProgressBarRenderMode,
+} from './progress-bar.js';
 
 /**
  * Electric violet theme for the draun CLI.
@@ -24,6 +29,9 @@ const truecolor =
     process.env.TERM_PROGRAM === 'vscode' ||
     process.env.TERM_PROGRAM === 'iTerm.app' ||
     winBuild >= 14931);
+
+export const colorSupported = pc.isColorSupported;
+export const truecolorSupported = truecolor;
 
 function rgb(r: number, g: number, b: number): (text: string) => string {
   if (!pc.isColorSupported) {
@@ -127,16 +135,23 @@ export function footer(text: string): string {
  * remainder with `░` (dim). The percentage counts only done issues.
  */
 export function progressBar(done: number, inProgress: number, total: number, width = 14): string {
-  if (total <= 0) {
-    return `${dim(sym.blockEmpty.repeat(width))} ${dim('0%')}`;
-  }
-  const filled = Math.round((done / total) * width);
-  const half = Math.min(width - filled, Math.round((inProgress / total) * width));
-  const empty = width - filled - half;
-  const bar =
-    gold(sym.blockFull.repeat(filled)) +
-    goldDim(sym.blockHalf.repeat(half)) +
-    dim(sym.blockEmpty.repeat(empty));
-  const pct = Math.round((done / total) * 100);
-  return `${bar} ${bold(`${pct}%`)}`;
+  const mode: ProgressBarRenderMode = resolveProgressBarMode({
+    color: pc.isColorSupported,
+    truecolor,
+    interactive: false,
+    animation: false,
+    reducedMotion: true,
+  });
+  return renderProgressBarWithLabel(
+    { done, inProgress, total, width },
+    {
+      mode,
+      symbols: {
+        done: sym.blockFull,
+        inProgress: sym.blockHalf,
+        pending: sym.blockEmpty,
+      },
+      emphasizeLabel: total <= 0 ? dim : bold,
+    },
+  );
 }

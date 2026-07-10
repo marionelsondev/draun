@@ -3,7 +3,12 @@ import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import { useSpecData } from './useSpecData.js';
 import { buildIssueView } from './data.js';
 import { getMessages } from '../lib/messages.js';
-import { progressBar, sym } from '../lib/theme.js';
+import { bold, colorSupported, dim, sym, truecolorSupported } from '../lib/theme.js';
+import {
+  renderProgressBarWithLabel,
+  resolveProgressBarMode,
+  type ProgressBarRenderMode,
+} from '../lib/progress-bar.js';
 import type { SpecStatus } from '../lib/index-parser.js';
 import type { IssueState } from '../lib/issues.js';
 
@@ -13,6 +18,60 @@ const VIOLET_BRIGHT = '#a182ef';
 const messages = getMessages();
 
 type Pane = 'specs' | 'issues';
+
+type TuiProgressBarModeOptions = {
+  stdoutIsTTY?: boolean;
+  env?: NodeJS.ProcessEnv;
+  color?: boolean;
+  truecolor?: boolean;
+};
+
+export function useAnimationClock(enabled: boolean, intervalMs = 110): number {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) {
+      setFrame(0);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setFrame((current) => (current + 1) % Number.MAX_SAFE_INTEGER);
+    }, intervalMs);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [enabled, intervalMs]);
+
+  return enabled ? frame : 0;
+}
+
+function hasReducedMotionEnv(env: NodeJS.ProcessEnv): boolean {
+  return (
+    env.DRAUN_REDUCED_MOTION === '1' ||
+    env.NO_MOTION === '1' ||
+    env.CI === 'true' ||
+    env.TERM === 'dumb'
+  );
+}
+
+export function resolveTuiProgressBarMode({
+  stdoutIsTTY = process.stdout.isTTY,
+  env = process.env,
+  color = colorSupported,
+  truecolor = truecolorSupported,
+}: TuiProgressBarModeOptions = {}): ProgressBarRenderMode {
+  const interactive = Boolean(stdoutIsTTY);
+  const reducedMotion = hasReducedMotionEnv(env);
+  return resolveProgressBarMode({
+    color,
+    truecolor,
+    interactive,
+    animation: interactive && !reducedMotion,
+    reducedMotion,
+  });
+}
 
 function useTerminalSize(): { columns: number; rows: number } {
   const { stdout } = useStdout();
@@ -58,10 +117,43 @@ function issueGlyph(state: IssueState): string {
   return sym.off;
 }
 
-function SpecRow({ spec, selected }: { spec: SpecStatus; selected: boolean }): React.JSX.Element {
+function tuiProgressBar(
+  done: number,
+  inProgress: number,
+  total: number,
+  width: number,
+  mode: ProgressBarRenderMode,
+  frame: number,
+): string {
+  return renderProgressBarWithLabel(
+    { done, inProgress, total, width },
+    {
+      mode,
+      frame,
+      symbols: {
+        done: sym.blockFull,
+        inProgress: sym.blockHalf,
+        pending: sym.blockEmpty,
+      },
+      emphasizeLabel: total <= 0 ? dim : bold,
+    },
+  );
+}
+
+function SpecRow({
+  spec,
+  selected,
+  progressMode,
+  progressFrame,
+}: {
+  spec: SpecStatus;
+  selected: boolean;
+  progressMode: ProgressBarRenderMode;
+  progressFrame: number;
+}): React.JSX.Element {
   const marker = selected ? sym.arrow : ' ';
   const bar = spec.brokenDown
-    ? progressBar(spec.done, spec.inProgress, spec.total, 8)
+    ? tuiProgressBar(spec.done, spec.inProgress, spec.total, 8, progressMode, progressFrame)
     : messages.status.notBrokenDownBadge;
   return (
     <Text wrap="truncate-end">
@@ -106,6 +198,7 @@ export function StatusApp({
   initialSlug?: string;
 }): React.JSX.Element {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const { columns, rows } = useTerminalSize();
   const { specs, error, loading, refresh } = useSpecData(root);
 
@@ -132,6 +225,8 @@ export function StatusApp({
   const view = selectedSpec ? buildIssueView(selectedSpec) : undefined;
   const issues = view?.issues ?? [];
   const safeIssueIndex = issues.length === 0 ? 0 : Math.min(issueIndex, issues.length - 1);
+  const progressMode = resolveTuiProgressBarMode({ stdoutIsTTY: stdout.isTTY });
+  const progressFrame = useAnimationClock(progressMode === 'animated-truecolor');
 
   useInput((input, key) => {
     if (input === 'q') {
@@ -170,6 +265,10 @@ export function StatusApp({
   // the issue list — the spec header (2).
   const specHeight = Math.max(1, rows - 6);
   const issueHeight = Math.max(1, rows - 8);
+  const detailProgressWidth = Math.max(
+    14,
+    Math.min(48, columns - leftWidth - (selectedSpec?.slug.length ?? 0) - 10),
+  );
 
   const specWindow = windowed(specs, safeSpecIndex, specHeight);
   const issueWindow = windowed(issues, safeIssueIndex, issueHeight);
@@ -212,6 +311,8 @@ export function StatusApp({
                   key={spec.slug}
                   spec={spec}
                   selected={specs.indexOf(spec) === safeSpecIndex}
+                  progressMode={progressMode}
+                  progressFrame={progressFrame}
                 />
               ))}
               {specWindow.more.down ? <Text dimColor> {sym.arrow}↓ more</Text> : null}
@@ -229,7 +330,16 @@ export function StatusApp({
                   {selectedSpec.slug}
                 </Text>
                 {'  '}
-                <Text>{progressBar(view.done, view.inProgress, view.total)}</Text>
+                <Text>
+                  {tuiProgressBar(
+                    view.done,
+                    view.inProgress,
+                    view.total,
+                    detailProgressWidth,
+                    progressMode,
+                    progressFrame,
+                  )}
+                </Text>
               </Text>
               <Text dimColor>
                 {messages.status.issuesSummary(view.total, view.done, view.inProgress, view.pending)}
