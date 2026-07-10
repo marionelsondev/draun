@@ -106,10 +106,11 @@ export function makeStatusCommand(): Command {
       const json = cmd.optsWithGlobals<{ json?: boolean }>().json === true;
       const messages = getMessages();
       const root = await resolveSpecsRoot(process.cwd());
+      const interactive = process.stdout.isTTY === true && process.stdin.isTTY === true;
 
       // Interactive, real-time TUI when attached to a terminal; the one-shot
       // path stays for --json and non-TTY (pipes, CI, tests).
-      if (!json && process.stdout.isTTY) {
+      if (!json && interactive) {
         const { runStatusTui } = await import('../tui/render.js');
         await runStatusTui(root, slug);
         return;
@@ -117,10 +118,19 @@ export function makeStatusCommand(): Command {
 
       if (slug !== undefined) {
         const status = await readSpecStatus(root, slug);
-        printResult(status, renderSpecDetail(status, messages), json);
+        if (json) {
+          printResult(status, '', true);
+          return;
+        }
+        printResult(status, renderSpecDetail(status, messages), false);
       } else {
         const statuses = await listSpecStatuses(root);
-        printResult({ specs: statuses }, renderSpecList(statuses, messages), json);
+        const payload = { specs: statuses };
+        if (json) {
+          printResult(payload, '', true);
+          return;
+        }
+        printResult(payload, renderSpecList(statuses, messages), false);
       }
     });
 }
